@@ -54,3 +54,14 @@ packaging/build_variant.py
 # 全局忽略 macOS 元数据（置于所有白名单之后，防止被 !** 反向放行）
 **/.DS_Store
 .serena/
+
+# ===== Android 工程 =====
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/
+# 预生成素材（由 android/scripts/prepare-assets.sh 生成，CI 构建时生成）
+android/app/src/main/assets/pet/
+# 签名与日志
+*.jks.bak

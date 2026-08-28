@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 桌宠悬浮窗内容：透明视频视图填满窗口 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/petRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <com.dshpet.android.pet.PetVideoView
+        android:id="@+id/petVideo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</FrameLayout>

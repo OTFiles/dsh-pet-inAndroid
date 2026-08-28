@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 小鲸鱼启动图标前景 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 喷水 -->
+    <path
+        android:fillColor="#9CC9FF"
+        android:pathData="M52,38 m-2.2,0 a2.2,2.2 0 1 0 4.4,0 a2.2,2.2 0 1 0 -4.4,0" />
+    <path
+        android:fillColor="#9CC9FF"
+        android:pathData="M60,34 m-2.2,0 a2.2,2.2 0 1 0 4.4,0 a2.2,2.2 0 1 0 -4.4,0" />
+    <path
+        android:fillColor="#9CC9FF"
+        android:pathData="M56,29 m-2.6,0 a2.6,2.6 0 1 0 5.2,0 a2.6,2.6 0 1 0 -5.2,0" />
+
+    <!-- 身体（朝左） -->
+    <path
+        android:fillColor="#5B9BFF"
+        android:pathData="M29,60 a26,20 0 1 0 52,0 a26,20 0 1 0 -52,0 Z" />
+
+    <!-- 尾巴（右） -->
+    <path
+        android:fillColor="#5B9BFF"
+        android:pathData="M79,60 l11,-11 l4,11 l-4,11 l-11,-11 Z" />
+
+    <!-- 鳍 -->
+    <path
+        android:fillColor="#B9D7FF"
+        android:pathData="M42,70 q8,9 17,4 l-4,7 q-13,2 -17,-7 Z" />
+
+    <!-- 眼睛 -->
+    <path
+        android:fillColor="#1C2B52"
+        android:pathData="M46,56 m-3,0 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0 Z" />
+
+    <!-- 微笑 -->
+    <path
+        android:strokeColor="#1C2B52"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M42,65 q7,6 15,3" />
+</vector>

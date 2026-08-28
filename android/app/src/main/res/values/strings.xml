@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">dsh-pet 桌宠</string>
+    <string name="notification_channel_pet">桌宠服务</string>
+    <string name="notification_chat_channel">AI 对话</string>
+    <string name="fgs_description">桌宠悬浮窗服务：让桌宠显示在其他应用之上并持续陪伴</string>
+</resources>
