@@ -1,5 +1,9 @@
 # dsh-pet-indesktop
 
+> **Android 版**：本仓库同时包含桌宠的 Android 原生移植版（Kotlin + Compose MD3，透明悬浮窗桌宠，
+> GitHub Actions 自动构建 APK）。详见 **[android/README-Android.md](android/README-Android.md)**，
+> 最新 APK 见 [Releases](https://github.com/OTFiles/dsh-pet-inAndroid/releases)。
+
 一个基于 **Python + PySide6** 的独立桌面宠物。项目脱离 DSH 运行时，提供透明无边框、置顶、可拖动、角色切换、动画播放、系统托盘和可选 AI 对话能力。
 
 > **当前版本：v4.0.1**（2026-08 发布，v4.0.0 的修复版）。发布形态为 **onedir 目录打包 + Inno Setup 安装包（`.exe`）+ 便携 zip 绿色版**：安装版与绿色版运行期都不解压、不产生临时缓存，启动快、卸载干净。
