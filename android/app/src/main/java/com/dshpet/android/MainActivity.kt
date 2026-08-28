@@ -356,7 +356,7 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
         Section("动作与移动") {
-            SwitchRow("自动移动", "桌宠会朝面向方向散步（20% 概率）", noMove, invert = true) { on ->
+            SwitchRow("自动移动", "桌宠会朝面向方向散步（20% 概率）", !noMove) { on ->
                 scope.launch { cfg.setNoMove(!on) }
             }
             SwitchRow("锁定位置", "桌宠固定不动，点击互动仍有效", lock) { on -> scope.launch { cfg.setLockPosition(on) } }
@@ -392,16 +392,6 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
         }
     }
 }
-
-private fun SwitchRow(
-    title: String,
-    subtitle: String? = null,
-    checked: Boolean,
-    onToggle: (Boolean) -> Unit,
-    invert: Boolean = false,
-) = if (invert) SettingRow(title, subtitle, trailing = {
-    Switch(checked = !checked, onCheckedChange = { onToggle(it) })
-}) else SettingRow(title, subtitle, trailing = { Switch(checked, onToggle) })
 
 // ================================================================ 外观
 @Composable
@@ -519,7 +509,7 @@ private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.c
                 Slider(value = maxTokens.toFloat(), onValueChange = { scope.launch { cfg.setChatMaxTokens(it.toInt()) } }, valueRange = 256f..8192f, steps = 30, modifier = Modifier.weight(1f))
                 Text("$maxTokens", fontSize = 12.sp, Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
-            SwitchRow("跳过 SSL 证书验证", "本地网关/自签名证书时开启", verifySsl, invert = true) { on ->
+            SwitchRow("跳过 SSL 证书验证", "本地网关/自签名证书时开启", !verifySsl) { on ->
                 scope.launch { cfg.setChatVerifySsl(!on) }
             }
         }
