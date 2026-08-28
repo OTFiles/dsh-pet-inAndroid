@@ -157,9 +157,8 @@ class PetMenu(
         var noMove by remember { mutableStateOf(engine.noMove) }
         var lock by remember { mutableStateOf(service.curLock) }
         var physics by remember { mutableStateOf(service.curPhysics) }
-        var blurCfg by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
+        val blurCfg by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
         val blurOn = blurCfg && Build.VERSION.SDK_INT >= 31
-
         fun run(action: suspend () -> Unit) {
             scope.launch { action(); }
             onDismiss()

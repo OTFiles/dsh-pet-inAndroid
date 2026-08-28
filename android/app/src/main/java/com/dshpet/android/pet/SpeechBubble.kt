@@ -60,6 +60,12 @@ class SpeechBubble(
     private var hideRunnable: Runnable? = null
     private val density = ctx.resources.displayMetrics.density
 
+    /** 由服务侧更新的配置缓存（服务在协程里读取 DataStore 后写入） */
+    @Volatile
+    var bubbleStyle: String = "classic_top"
+    @Volatile
+    var blurOn: Boolean = false
+
     fun showText(text: String, durationMs: Long = 6000) {
         hideRunnable?.let { handler.removeCallbacks(it) }
         if (view == null) {
@@ -67,8 +73,8 @@ class SpeechBubble(
                 setContent {
                     BubbleContent(
                         text = text,
-                        style = config.selfTalkBubbleStyle(),
-                        blur = config.blurEnabled() && Build.VERSION.SDK_INT >= 31,
+                        style = bubbleStyle,
+                        blur = blurOn,
                     )
                 }
             }
@@ -90,8 +96,8 @@ class SpeechBubble(
             (view as ComposeView).setContent {
                 BubbleContent(
                     text = text,
-                    style = config.selfTalkBubbleStyle(),
-                    blur = config.blurEnabled() && Build.VERSION.SDK_INT >= 31,
+                    style = bubbleStyle,
+                    blur = blurOn,
                 )
             }
         }

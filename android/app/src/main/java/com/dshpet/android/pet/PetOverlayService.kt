@@ -234,6 +234,8 @@ class PetOverlayService : Service() {
 
         // 气泡
         bubble = SpeechBubble(this, engine, config)
+        bubble?.bubbleStyle = config.selfTalkBubbleStyle()
+        bubble?.blurOn = config.blurEnabled() && Build.VERSION.SDK_INT >= 31
 
         // 自言自语素材缓存（供非协程回调使用）
         curSelfTalkTexts = config.selfTalkTexts().toList()
@@ -547,6 +549,12 @@ class PetOverlayService : Service() {
         }
         watch(c.flowStringSet("self_talk_texts", emptySet())) { v ->
             curSelfTalkTexts = (v as Set<*>).filterIsInstance<String>().toList()
+        }
+        watch(c.flowString("self_talk_bubble_style", "classic_top")) { v ->
+            bubble?.bubbleStyle = v as String
+        }
+        watch(c.flowBool("blur_enabled", false)) { v ->
+            bubble?.blurOn = (v as Boolean) && Build.VERSION.SDK_INT >= 31
         }
         watch(c.flowDouble("self_talk_duration_seconds", 3.2)) { v ->
             curSelfTalkDurationMs = ((v as Double) * 1000).toLong()
