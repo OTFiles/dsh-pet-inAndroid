@@ -195,7 +195,7 @@ class PetConfig(private val ctx: Context) {
 
     /** 多开实例计数（仅递增，供"生小肥鱼"分配 instanceId） */
     suspend fun nextInstanceId(): Int {
-        val cur = getInt(K_INSTANCE_COUNT, 0)
+        val cur = read(K_INSTANCE_COUNT, 0)
         val next = cur + 1
         set("spawned_instance_count", next)
         return next

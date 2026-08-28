@@ -71,7 +71,8 @@ class ChatActivity : ComponentActivity() {
         setContent {
             val vm: ChatViewModel = viewModel()
             val cfg = PetConfig.get(applicationContext)
-            val blur = cfg.blurEnabled() && android.os.Build.VERSION.SDK_INT >= 31
+            val blurCfg by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
+            val blur = blurCfg && android.os.Build.VERSION.SDK_INT >= 31
             MaterialTheme {
                 ChatScreen(vm, blur)
             }

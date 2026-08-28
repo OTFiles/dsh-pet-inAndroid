@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Brush
+import com.dshpet.android.data.PetConfig
 import com.dshpet.android.util.mdBlur
 import kotlin.math.roundToInt
 
@@ -173,7 +174,7 @@ class SpeechBubble(
                     .clip(RoundedCornerShape(radius.dp))
                     .background(
                         if (blur) Brush.linearGradient(listOf(Color(0xCCFFFFFF), Color(0xCCEAF2FF)))
-                        else bg
+                        else androidx.compose.ui.graphics.SolidColor(bg)
                     )
                     .mdBlur(blur, radius = 18)
                     .padding(horizontal = 14.dp, vertical = 10.dp),

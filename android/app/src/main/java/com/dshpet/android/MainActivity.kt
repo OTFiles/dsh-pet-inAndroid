@@ -136,6 +136,8 @@ private fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     var tab by remember { mutableIntStateOf(0) }
     val tabs = listOf("常规", "桌宠", "外观", "AI 对话", "快捷", "关于")
+    val blurCfg by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
+    val blurOn = blurCfg && Build.VERSION.SDK_INT >= 31
 
     Scaffold(
         topBar = {
@@ -172,7 +174,7 @@ private fun SettingsScreen() {
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .mdBlur(cfg.blurEnabled() && Build.VERSION.SDK_INT >= 31, radius = 24)
+                .mdBlur(blurOn, radius = 24)
         ) {
             when (tab) {
                 0 -> GeneralTab(ctx, cfg, scope)

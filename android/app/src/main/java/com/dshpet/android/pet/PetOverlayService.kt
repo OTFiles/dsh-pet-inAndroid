@@ -96,11 +96,9 @@ class PetOverlayService : Service() {
     private var curOpacity = 100
     internal var curSpeed = 1.0
     private var curNoMove = false
-    private var curLock = false
-        internal set
+    internal var curLock = false
     private var curShiftDrag = false
-    private var curPhysics = false
-        internal set
+    internal var curPhysics = false
     private var curGap = 0.0
     private var curSelfTalk = false
     private var curSelfTalkTexts: List<String> = emptyList()
@@ -460,8 +458,7 @@ class PetOverlayService : Service() {
         lp.x = cx.dp()
         lp.y = cy.dp()
         runCatching { wm.updateViewLayout(c, lp) }
-        engine.winX = cx
-        engine.winY = cy
+        engine.syncPosition(cx, cy)
     }
 
     private fun tickPhysics() {
@@ -741,6 +738,7 @@ class PetOverlayService : Service() {
 
     fun Int.dp(): Int = (this * density).roundToInt()
     fun px2dp(px: Float): Float = px / density
+    fun px2dp(px: Int): Float = px / density
 
     fun requireOverlayPermission(): Boolean = Settings.canDrawOverlays(this)
 }

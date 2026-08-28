@@ -270,6 +270,12 @@ class PetEngine(
         moveTo(x, y)
     }
 
+    /** 仅更新位置字段，不触发 moveTo 回调（避免 moveWindow 递归） */
+    fun syncPosition(x: Int, y: Int) {
+        winX = x
+        winY = y
+    }
+
     fun durationOf(name: String): Double = catalog.durations[name] ?: 10.0
 
     private fun currentPositionSec(): Double = currentPositionSecProvider()

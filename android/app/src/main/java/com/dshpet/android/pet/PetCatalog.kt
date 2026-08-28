@@ -31,8 +31,9 @@ class PetCatalog private constructor(
     /** 随机动作池 = random 目录 + 未进入核心分类的动画 */
     val acts: List<String>
         get() {
-            val core = folderFiles["idle"] + folderFiles["turn"] + folderFiles["move"] +
-                    folderFiles["click"] + folderFiles["drag"] + folderFiles["random"]
+            val core = folderFiles["idle"].orEmpty() + folderFiles["turn"].orEmpty() +
+                    folderFiles["move"].orEmpty() + folderFiles["click"].orEmpty() +
+                    folderFiles["drag"].orEmpty() + folderFiles["random"].orEmpty()
             val listed = core.distinct()
             val extra = names.filter { it !in listed }
             return (folderFiles["random"] ?: emptyList()) + extra

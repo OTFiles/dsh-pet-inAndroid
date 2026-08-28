@@ -47,6 +47,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -156,6 +157,8 @@ class PetMenu(
         var noMove by remember { mutableStateOf(engine.noMove) }
         var lock by remember { mutableStateOf(service.curLock) }
         var physics by remember { mutableStateOf(service.curPhysics) }
+        var blurCfg by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
+        val blurOn = blurCfg && Build.VERSION.SDK_INT >= 31
 
         fun run(action: suspend () -> Unit) {
             scope.launch { action(); }
@@ -165,9 +168,9 @@ class PetMenu(
         Surface(
             modifier = Modifier
                 .width(248.dp)
-                .mdBlur(cfg.blurEnabled() && Build.VERSION.SDK_INT >= 31, radius = 22),
+                .mdBlur(blurOn, radius = 22),
             shape = RoundedCornerShape(18.dp),
-            color = if (cfg.blurEnabled() && Build.VERSION.SDK_INT >= 31) Color(0xE6FFFFFF) else MaterialTheme.colorScheme.surface,
+            color = if (blurOn) Color(0xE6FFFFFF) else MaterialTheme.colorScheme.surface,
             shadowElevation = 12.dp,
             tonalElevation = 2.dp,
         ) {
@@ -195,7 +198,7 @@ class PetMenu(
                     MenuItem(Icons.Filled.PlayArrow, "动画集", badge = "91 段") { animHubOpen = true }
                     MenuItem(Icons.Filled.Refresh, "播放速度", badge = "${service.curSpeed}×") { speedOpen = true }
                     SpeedSubmenu(speedOpen, cfg) { v -> run { cfg.setPlaybackSpeed(v) } }
-                    MenuItem(Icons.Filled.Home, "大小", badge = sizeLabel(cfg.scale())) { sizeOpen = true }
+                    MenuItem(Icons.Filled.Home, "大小", badge = sizeLabel(engine.winW / 640.0)) { sizeOpen = true }
                     SizeSubmenu(sizeOpen, cfg) { v -> run { cfg.setScale(v) } }
                     // ---- 功能 ----
                     MenuGroup("功能")
@@ -315,7 +318,7 @@ class PetMenu(
                     .padding(start = 40.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             ) {
                 Text(sizeLabel(v), fontSize = 13.sp)
-                if (cfg.scale() == v) {
+                if (engine.winW == (640.0 * v).toInt()) {
                     Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.width(16.dp))
                 }
             }
@@ -365,7 +368,8 @@ class PetMenu(
 
     @Composable
     private fun QuickLaunchList(cfg: PetConfig, onBack: () -> Unit, onPick: (String) -> Unit) {
-        val apps = remember { cfg.quickLaunch() }
+        var apps by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+        androidx.compose.runtime.LaunchedEffect(Unit) { apps = cfg.quickLaunch() }
         Column(Modifier.padding(vertical = 4.dp)) {
             Row(
                 modifier = Modifier
