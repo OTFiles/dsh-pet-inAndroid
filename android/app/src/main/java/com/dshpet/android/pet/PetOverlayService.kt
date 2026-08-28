@@ -66,8 +66,14 @@ class PetOverlayService : Service() {
         }
 
         fun stopAll(ctx: Context) {
-            ctx.stopService(intent(ctx, 0))
+            synchronized(activeInstances) {
+                val ids = activeInstances.toList()
+                ids.forEach { ctx.stopService(intent(ctx, it)) }
+                ctx.stopService(intent(ctx, 0))
+            }
         }
+
+        private val activeInstances = mutableSetOf<Int>()
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -152,6 +158,7 @@ class PetOverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         instanceId = intent?.getIntExtra(EXTRA_INSTANCE, 0) ?: 0
+        synchronized(activeInstances) { activeInstances.add(instanceId) }
         if (intent?.action == "quit") {
             quit()
             return START_NOT_STICKY
@@ -169,6 +176,7 @@ class PetOverlayService : Service() {
     }
 
     override fun onDestroy() {
+        synchronized(activeInstances) { activeInstances.remove(instanceId) }
         scope.cancel()
         uiHandler.removeCallbacksAndMessages(null)
         settingsJobs.forEach { it.cancel() }
@@ -669,11 +677,8 @@ class PetOverlayService : Service() {
     }
 
     fun quit() {
-        if (instanceId == 0) {
-            stopAll(this)
-        } else {
-            stopSelf()
-        }
+        stopAll(this)
+        stopSelf()
     }
 
     // ================================================================ 位置持久化
