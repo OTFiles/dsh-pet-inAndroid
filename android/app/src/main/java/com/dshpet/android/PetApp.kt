@@ -27,7 +27,7 @@ class PetApp : Application() {
             // 同步 launcher 入口（隐藏后台开关）与开机自启接收器状态
             MainActivity.applyRecentsAlias(this@PetApp, cfg.hideFromRecents())
             setBootReceiverEnabled(cfg.autoStart())
-            if (cfg.autoStart && cfg.overlayPermissionGranted) {
+            if (cfg.autoStart() && cfg.overlayPermissionGranted()) {
                 PetOverlayService.ensureRunning(this@PetApp, persist = false)
             }
         }

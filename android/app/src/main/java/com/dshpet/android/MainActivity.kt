@@ -367,22 +367,22 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
                 scope.launch { cfg.setDragPhysics(on) }
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("播放速度", fontSize = 13.sp, Modifier.width(90.dp))
+                Text("播放速度", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(
                     value = speed.toFloat(), onValueChange = { scope.launch { cfg.setPlaybackSpeed(it.toDouble()) } },
                     valueRange = 0.5f..2.0f, steps = 5,
                     modifier = Modifier.weight(1f),
                 )
-                Text("${speed}×", fontSize = 12.sp, Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("${speed}×", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("动画间隔", fontSize = 13.sp, Modifier.width(90.dp))
+                Text("动画间隔", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(
                     value = gap.toFloat(), onValueChange = { scope.launch { cfg.setAnimGap(it.toDouble()) } },
                     valueRange = 0f..10f,
                     modifier = Modifier.weight(1f),
                 )
-                Text("${gap}s", fontSize = 12.sp, Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("${gap}s", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
         }
         Section("点击互动") {
@@ -413,13 +413,13 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
                 }
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("不透明度", fontSize = 13.sp, Modifier.width(90.dp))
+                Text("不透明度", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(
                     value = opacity.toFloat(), onValueChange = { scope.launch { cfg.setPetOpacity(it.toInt()) } },
                     valueRange = 10f..100f,
                     modifier = Modifier.weight(1f),
                 )
-                Text("$opacity%", fontSize = 12.sp, Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("$opacity%", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("left" to "朝左", "right" to "朝右").forEach { (v, label) ->
@@ -438,13 +438,13 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
         Section("自言自语气泡") {
             SwitchRow("允许自言自语", "随机间隔冒出可爱小气泡", selfTalk) { on -> scope.launch { cfg.setSelfTalk(on) } }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("间隔", fontSize = 13.sp, Modifier.width(90.dp))
+                Text("间隔", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(
                     value = stMin.toFloat(), onValueChange = { scope.launch { cfg.setSelfTalkMin(it.toInt()) } },
                     valueRange = 5f..300f,
                     modifier = Modifier.weight(1f),
                 )
-                Text("${stMin}s", fontSize = 12.sp, Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("${stMin}s", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             var styleOpen by remember { mutableStateOf(false) }
             SettingRow("气泡样式", subtitle = styleLabel(bubbleStyle), trailing = {
@@ -500,14 +500,14 @@ private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.c
             OutlinedTextField(model, { scope.launch { cfg.setChatModel(it) } }, label = { Text("模型") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             OutlinedTextField(apiKey, { scope.launch { cfg.setChatApiKey(it) } }, label = { Text("API Key") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("温度", fontSize = 13.sp, Modifier.width(90.dp))
+                Text("温度", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(value = temperature.toFloat(), onValueChange = { scope.launch { cfg.setChatTemperature(it.toDouble()) } }, valueRange = 0f..2f, modifier = Modifier.weight(1f))
-                Text("$temperature", fontSize = 12.sp, Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("$temperature", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("最大 Tokens", fontSize = 13.sp, Modifier.width(90.dp))
+                Text("最大 Tokens", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(value = maxTokens.toFloat(), onValueChange = { scope.launch { cfg.setChatMaxTokens(it.toInt()) } }, valueRange = 256f..8192f, steps = 30, modifier = Modifier.weight(1f))
-                Text("$maxTokens", fontSize = 12.sp, Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("$maxTokens", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             SwitchRow("跳过 SSL 证书验证", "本地网关/自签名证书时开启", !verifySsl) { on ->
                 scope.launch { cfg.setChatVerifySsl(!on) }

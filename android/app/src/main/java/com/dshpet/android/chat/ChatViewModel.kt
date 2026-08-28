@@ -37,7 +37,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         refresh()
-        ensureSession()
+        viewModelScope.launch { ensureSession() }
     }
 
     fun refresh() {

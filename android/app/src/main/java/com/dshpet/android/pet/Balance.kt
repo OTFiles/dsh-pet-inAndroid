@@ -25,21 +25,16 @@ object Balance {
                     if (!verifySsl) {
                         // 跳过证书校验（本地网关/自签名），与桌面端 verify_ssl=false 一致
                         val trustAll = arrayOfNulls<java.security.cert.X509Certificate>(0)
-                        val sslCtx = javax.net.ssl.SSLContext.getInstance("TLS")
-                        sslCtx.init(
-                            null,
-                            arrayOf(object : javax.net.ssl.X509TrustManager {
-                                override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-                                override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-                                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = trustAll
-                            }),
-                            java.security.SecureRandom(),
-                        )
-                        sslSocketFactory(sslCtx.socketFactory, object : javax.net.ssl.X509TrustManager {
+                        val tm = object : javax.net.ssl.X509TrustManager {
                             override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
                             override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-                            override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = trustAll
-                        })
+                            @Suppress("UNCHECKED_CAST")
+                            override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> =
+                                trustAll as Array<java.security.cert.X509Certificate>
+                        }
+                        val sslCtx = javax.net.ssl.SSLContext.getInstance("TLS")
+                        sslCtx.init(null, arrayOf(tm), java.security.SecureRandom())
+                        sslSocketFactory(sslCtx.socketFactory, tm)
                         hostnameVerifier { _, _ -> true }
                     }
                 }

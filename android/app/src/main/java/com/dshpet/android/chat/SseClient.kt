@@ -163,7 +163,9 @@ object SseClient {
             val tm = object : javax.net.ssl.X509TrustManager {
                 override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
                 override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = trustAll
+                @Suppress("UNCHECKED_CAST")
+                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> =
+                    trustAll as Array<java.security.cert.X509Certificate>
             }
             val sslCtx = javax.net.ssl.SSLContext.getInstance("TLS")
             sslCtx.init(null, arrayOf(tm), java.security.SecureRandom())
