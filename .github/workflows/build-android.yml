@@ -9,13 +9,16 @@ name: build-android
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['android-*']
   workflow_dispatch:
     inputs:
       release_tag:
         description: '打 Release 的标签（留空只出 Artifact）'
         required: false
         default: ''
+
+permissions:
+  contents: write
 
 jobs:
   # 快速编译检查：不依赖素材，第一时间暴露 Kotlin/构建脚本错误
