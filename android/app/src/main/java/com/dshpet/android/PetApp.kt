@@ -4,16 +4,18 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import android.util.Log
 import com.dshpet.android.data.PetConfig
 import com.dshpet.android.pet.PetOverlayService
+import com.dshpet.android.util.AppLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * 应用入口：初始化通知渠道；若用户开启了"开机自启/自动启动"且授权过，
- * 在应用被拉起时确保桌宠服务在运行（防 OEM 杀后台后无感知）。
+ * 应用入口：初始化日志/通知渠道；未捕获异常写入内置日志；
+ * 若用户开启了"开机自启/自动启动"且授权过，拉起时确保桌宠服务在运行。
  */
 class PetApp : Application() {
 
@@ -21,6 +23,9 @@ class PetApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AppLog.init(this)
+        installCrashHandler()
+        AppLog.log("APP", "启动 v4.0.1")
         createChannels()
         appScope.launch {
             val cfg = PetConfig.get(this@PetApp)
@@ -30,6 +35,17 @@ class PetApp : Application() {
             if (cfg.autoStart() && cfg.overlayPermissionGranted()) {
                 PetOverlayService.ensureRunning(this@PetApp, persist = false)
             }
+        }
+    }
+
+    private fun installCrashHandler() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            AppLog.log(
+                "CRASH",
+                "线程=${thread.name}\n${Log.getStackTraceString(throwable)}",
+            )
+            previous?.uncaughtException(thread, throwable)
         }
     }
 

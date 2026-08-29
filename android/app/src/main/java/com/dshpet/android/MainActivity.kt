@@ -612,6 +612,11 @@ private fun AboutTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlin
     Column(Modifier.verticalScroll(rememberScrollState())) {
         Section("版本") {
             SettingRow("dsh-pet 桌宠（Android 移植版）", subtitle = "v4.0.1 · 基于 dsh-pet-indesktop v4.0.1 移植")
+            SettingRow("查看日志", subtitle = "崩溃排查：浏览/复制/分享内置日志（按日期存储）", trailing = {
+                TextButton(onClick = {
+                    ctx.startActivity(Intent(ctx, com.dshpet.android.LogActivity::class.java))
+                }) { Text("打开") }
+            })
             SettingRow("检查更新", subtitle = updateInfo, trailing = {
                 TextButton(onClick = {
                     updateInfo = "检查中…"

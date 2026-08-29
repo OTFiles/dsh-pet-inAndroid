@@ -66,6 +66,12 @@
             android:exported="false"
             android:theme="@style/Theme.DshPet" />
 
+        <!-- 内置日志查看器 -->
+        <activity
+            android:name=".LogActivity"
+            android:exported="false"
+            android:theme="@style/Theme.DshPet" />
+
         <!-- 桌宠悬浮窗前台服务 -->
         <service
             android:name=".pet.PetOverlayService"

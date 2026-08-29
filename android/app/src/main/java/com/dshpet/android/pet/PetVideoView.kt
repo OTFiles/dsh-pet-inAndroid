@@ -70,6 +70,14 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
 
     private val renderer = object : GLSurfaceView.Renderer {
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            try {
+                onSurfaceCreatedInternal()
+            } catch (e: Throwable) {
+                com.dshpet.android.util.AppLog.log("GL", "onSurfaceCreated 失败: ${e.message}")
+            }
+        }
+
+        private fun onSurfaceCreatedInternal() {
             GLES20.glClearColor(0f, 0f, 0f, 0f)
             program = createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
             uTexLoc = GLES20.glGetUniformLocation(program, "uTex")
@@ -99,11 +107,26 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
         }
 
         override fun onDrawFrame(gl: GL10?) {
+            try {
+                onDrawFrameInternal()
+            } catch (e: Throwable) {
+                // GL 线程异常会导致原生崩溃：单帧失败只清屏，不抛出
+                try { GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT) } catch (ignored: Throwable) {}
+            }
+        }
+
+        private fun onDrawFrameInternal() {
             val st = surfaceTexture ?: run {
                 GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
                 return
             }
-            st.updateTexImage()
+            try {
+                st.updateTexImage()
+            } catch (e: Exception) {
+                // 首帧前 updateTexImage 在个别驱动上可能异常：跳过本帧
+                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+                return
+            }
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
             GLES20.glUseProgram(program)
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0)

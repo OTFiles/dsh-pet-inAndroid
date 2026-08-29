@@ -27,6 +27,7 @@ import com.dshpet.android.R
 import com.dshpet.android.chat.ChatActivity
 import com.dshpet.android.data.PetConfig
 import com.dshpet.android.data.PetState
+import com.dshpet.android.util.AppLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -76,7 +77,13 @@ class PetOverlayService : Service() {
         private val activeInstances = mutableSetOf<Int>()
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(
+        SupervisorJob() + Dispatchers.Main.immediate +
+                kotlinx.coroutines.CoroutineExceptionHandler { _, e ->
+                    // 协程内异常不得让应用崩溃，写入内置日志
+                    AppLog.log("SCOPE", android.util.Log.getStackTraceString(e))
+                }
+    )
     private val uiHandler = Handler(Looper.getMainLooper())
 
     private lateinit var config: PetConfig
@@ -116,6 +123,7 @@ class PetOverlayService : Service() {
     private var curClickBalance = false
     private var curClickSelfTalk = false
     private var visible = true
+    private var consecutiveErrors = 0
     private var settingsJobs = mutableListOf<Job>()
 
     
@@ -154,10 +162,12 @@ class PetOverlayService : Service() {
         super.onCreate()
         config = PetConfig.get(this)
         density = resources.displayMetrics.density
+        AppLog.log("SVC", "onCreate instance=$instanceId")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         instanceId = intent?.getIntExtra(EXTRA_INSTANCE, 0) ?: 0
+        AppLog.log("SVC", "onStartCommand instance=$instanceId action=${intent?.action}")
         synchronized(activeInstances) { activeInstances.add(instanceId) }
         if (intent?.action == "quit") {
             quit()
@@ -170,7 +180,15 @@ class PetOverlayService : Service() {
         scope.launch { config.setPetRunning(true) }
         startForeground(1000 + instanceId, buildNotification())
         if (container == null) {
-            scope.launch { initPet() }
+            scope.launch {
+                try {
+                    initPet()
+                } catch (e: Throwable) {
+                    AppLog.log("INIT", "初始化失败: ${e.message}\n${android.util.Log.getStackTraceString(e)}")
+                    showBubble("桌宠初始化失败：${e.message}")
+                    stopSelf()
+                }
+            }
         }
         return START_STICKY
     }
@@ -196,8 +214,10 @@ class PetOverlayService : Service() {
 
     // ================================================================ 初始化
     private suspend fun initPet() {
+        AppLog.log("SVC", "initPet start instance=$instanceId")
         stateStore = PetState(this, instanceId)
         catalog = PetCatalog.load(this)
+        AppLog.log("SVC", "catalog 加载 ${catalog.names.size} 段动画")
         engine = PetEngine(
             catalog = catalog,
             play = { name -> playAnimation(name) },
@@ -260,6 +280,7 @@ class PetOverlayService : Service() {
         uiHandler.postDelayed(moveTicker, 33)
         scheduleSelfTalk()
         applyOpacity()
+        AppLog.log("SVC", "initPet 完成，窗口 ${engine.winX},${engine.winY} ${engine.winW}x${engine.winH}")
     }
 
     // ================================================================ 自言自语
@@ -304,13 +325,21 @@ class PetOverlayService : Service() {
         videoView = root.findViewById(R.id.petVideo)
         videoView.setListener(object : PetVideoView.Listener {
             override fun onVideoEnded(name: String) {
+                consecutiveErrors = 0
                 engine.onAnimEnded(name)
                 videoView.setMirror(engine.shouldMirror(engine.anim ?: ""))
             }
 
             override fun onVideoError(name: String, msg: String) {
-                // 出错时推进动画链，避免停摆
-                engine.onAnimEnded(name)
+                // 出错时推进动画链，避免停摆；连续出错则停止并提示（防死循环）
+                AppLog.log("VIDEO", "播放失败 [$name]: $msg")
+                consecutiveErrors++
+                if (consecutiveErrors > 8) {
+                    videoView.pausePlay()
+                    showBubble("动画加载失败：$msg")
+                } else {
+                    engine.onAnimEnded(name)
+                }
             }
         })
         container = root
@@ -319,11 +348,15 @@ class PetOverlayService : Service() {
 
     // ================================================================ 动画播放
     private fun playAnimation(name: String) {
-        val path = catalog.files[name] ?: return
-        videoView.play(name, path, curSpeed.toFloat())
-        videoView.setMirror(engine.shouldMirror(name))
-        // 隐藏时不播（省电）：显示时恢复
-        if (!visible) videoView.pausePlay()
+        try {
+            val path = catalog.files[name] ?: return
+            videoView.play(name, path, curSpeed.toFloat())
+            videoView.setMirror(engine.shouldMirror(name))
+            // 隐藏时不播（省电）：显示时恢复
+            if (!visible) videoView.pausePlay()
+        } catch (e: Throwable) {
+            AppLog.log("PLAY", "playAnimation($name) 异常: ${e.message}")
+        }
     }
 
     // ================================================================ 手势
