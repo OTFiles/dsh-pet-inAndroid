@@ -3,6 +3,7 @@ package com.dshpet.android.util
 import android.content.Context
 import android.util.Log
 import java.io.File
+import java.io.FileFilter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,7 +35,7 @@ object AppLog {
         // 日志保留最近 14 天，防膨胀
         try {
             val cutoff = System.currentTimeMillis() - 14L * 24 * 3600 * 1000
-            d.listFiles { it.extension == "log" }?.forEach {
+            d.listFiles(FileFilter { it.isFile && it.extension == "log" })?.forEach {
                 if (it.lastModified() < cutoff) it.delete()
             }
         } catch (e: Exception) {
@@ -43,7 +44,7 @@ object AppLog {
 
     /** 按日期倒序的日志文件列表 */
     fun files(): List<File> =
-        dir?.listFiles { it.extension == "log" }
+        dir?.listFiles(FileFilter { it.isFile && it.extension == "log" })
             ?.sortedByDescending { it.name }
             ?: emptyList()
 
