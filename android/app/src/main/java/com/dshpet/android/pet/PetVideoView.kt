@@ -30,6 +30,9 @@ import javax.microedition.khronos.opengles.GL10
  */
 class PetVideoView(context: Context) : GLSurfaceView(context) {
 
+    /** XML 布局 inflate 需要 (Context, AttributeSet) 构造函数 */
+    constructor(context: Context, attrs: android.util.AttributeSet?) : this(context)
+
     interface Listener {
         fun onVideoEnded(name: String)
         fun onVideoError(name: String, msg: String)

@@ -65,3 +65,6 @@ android/.kotlin/
 android/app/src/main/assets/pet/
 # 签名与日志
 *.jks.bak
+
+# 缓存文件
+cache/*

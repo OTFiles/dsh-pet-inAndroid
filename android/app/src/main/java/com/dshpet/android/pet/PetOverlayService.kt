@@ -75,6 +75,8 @@ class PetOverlayService : Service() {
         }
 
         private val activeInstances = mutableSetOf<Int>()
+        /** 本进程内某实例初始化失败：避免 START_STICKY 无限重启循环 */
+        private val initFailed = mutableSetOf<Int>()
     }
 
     private val scope = CoroutineScope(
@@ -179,12 +181,18 @@ class PetOverlayService : Service() {
         }
         scope.launch { config.setPetRunning(true) }
         startForeground(1000 + instanceId, buildNotification())
+        if (synchronized(initFailed) { initFailed.contains(instanceId) }) {
+            // 上次初始化失败：不再重试，避免重启循环
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (container == null) {
             scope.launch {
                 try {
                     initPet()
                 } catch (e: Throwable) {
                     AppLog.log("INIT", "初始化失败: ${e.message}\n${android.util.Log.getStackTraceString(e)}")
+                    synchronized(initFailed) { initFailed.add(instanceId) }
                     showBubble("桌宠初始化失败：${e.message}")
                     stopSelf()
                 }
