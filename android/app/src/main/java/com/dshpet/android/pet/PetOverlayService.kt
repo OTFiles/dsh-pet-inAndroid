@@ -694,7 +694,7 @@ class PetOverlayService : Service() {
             val r = withContext(Dispatchers.IO) { Updater.latestRelease() }
             r.fold(
                 onSuccess = { rel ->
-                    val current = "4.0.1"
+                    val current = com.dshpet.android.BuildConfig.VERSION_NAME
                     if (Updater.isNewer(rel.tag, current)) {
                         showBubble("发现新版本 v${rel.tag}（当前 $current）。可前往设置-关于下载更新。", 9000)
                     } else {

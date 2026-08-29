@@ -145,7 +145,7 @@ private fun SettingsScreen() {
                 title = {
                     Column {
                         Text("dsh-pet 桌宠", fontWeight = FontWeight.SemiBold)
-                        Text("Android 版 v4.0.1", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Android 版 v${BuildConfig.VERSION_NAME}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -611,7 +611,7 @@ private fun AboutTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlin
     var updateInfo by remember { mutableStateOf<String?>(null) }
     Column(Modifier.verticalScroll(rememberScrollState())) {
         Section("版本") {
-            SettingRow("dsh-pet 桌宠（Android 移植版）", subtitle = "v4.0.1 · 基于 dsh-pet-indesktop v4.0.1 移植")
+            SettingRow("dsh-pet 桌宠（Android 移植版）", subtitle = "v${BuildConfig.VERSION_NAME} · 基于 dsh-pet-indesktop v4.0.1 移植")
             SettingRow("查看日志", subtitle = "崩溃排查：浏览/复制/分享内置日志（按日期存储）", trailing = {
                 TextButton(onClick = {
                     ctx.startActivity(Intent(ctx, com.dshpet.android.LogActivity::class.java))
@@ -623,7 +623,7 @@ private fun AboutTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlin
                     scope.launch {
                         val r = withContext(Dispatchers.IO) { Updater.latestRelease() }
                         updateInfo = r.fold({ rel ->
-                            if (Updater.isNewer(rel.tag, "4.0.1")) "发现新版本 ${rel.tag}！点击右侧打开下载页"
+                            if (Updater.isNewer(rel.tag, BuildConfig.VERSION_NAME)) "发现新版本 ${rel.tag}！点击右侧打开下载页"
                             else "已经是最新版本"
                         }, { "检查失败：${it.message}" })
                         r.getOrNull()?.let { _ ->

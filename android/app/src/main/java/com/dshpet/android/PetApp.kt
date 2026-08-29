@@ -25,7 +25,7 @@ class PetApp : Application() {
         super.onCreate()
         AppLog.init(this)
         installCrashHandler()
-        AppLog.log("APP", "启动 v4.0.1")
+        AppLog.log("APP", "启动 v${BuildConfig.VERSION_NAME}")
         createChannels()
         appScope.launch {
             val cfg = PetConfig.get(this@PetApp)
