@@ -16,7 +16,6 @@ import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -329,8 +328,16 @@ class PetOverlayService : Service() {
         }
         params = lp
 
-        val root = LayoutInflater.from(this).inflate(R.layout.pet_overlay, null)
-        videoView = root.findViewById(R.id.petVideo)
+        // 纯代码创建视图（避免 XML inflate 自定义 View 的兼容性问题）
+        val root = android.widget.FrameLayout(this).apply {
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
+        videoView = PetVideoView(this)
+        root.addView(videoView, android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+        ))
+        AppLog.log("SVC", "buildWindow ${w}x$h 纯代码创建视图")
         videoView.setListener(object : PetVideoView.Listener {
             override fun onVideoEnded(name: String) {
                 consecutiveErrors = 0
