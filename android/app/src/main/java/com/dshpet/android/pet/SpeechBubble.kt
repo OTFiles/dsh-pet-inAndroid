@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Brush
 import com.dshpet.android.data.PetConfig
 import com.dshpet.android.util.ProvideComposeHost
+import com.dshpet.android.util.attachComposeHost
 import com.dshpet.android.util.mdBlur
 import kotlin.math.roundToInt
 
@@ -69,6 +70,7 @@ class SpeechBubble(
         hideRunnable?.let { handler.removeCallbacks(it) }
         if (view == null) {
             val composeView = ComposeView(ctx).apply {
+                attachComposeHost()
                 setContent {
                     ProvideComposeHost {
                     BubbleContent(

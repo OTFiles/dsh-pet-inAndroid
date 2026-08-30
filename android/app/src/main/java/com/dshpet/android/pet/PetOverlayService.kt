@@ -149,13 +149,15 @@ class PetOverlayService : Service() {
     private var lastMoveMs = 0L
 
     // ---- 定时器 ----
+    // 永续调度（空闲时只做空检查，开销可忽略）。原先条件不满足即停止且
+    // 永不重启，导致物理拖动/后续自动走动的 tick 从未被调用。
     private val moveTicker = object : Runnable {
         override fun run() {
             if (engine.movePlanActive() || physMode != null) {
                 engine.tickMove()
                 tickPhysics()
-                uiHandler.postDelayed(this, 33)
             }
+            uiHandler.postDelayed(this, 33)
         }
     }
 

@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dshpet.android.data.PetConfig
 import com.dshpet.android.util.ProvideComposeHost
+import com.dshpet.android.util.attachComposeHost
 import com.dshpet.android.util.mdBlur
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -84,6 +85,7 @@ class PetMenu(
     fun show() {
         if (view != null) return
         val composeView = ComposeView(ctx).apply {
+            attachComposeHost()
             setContent { ProvideComposeHost { MenuRoot() } }
         }
         val lp = WindowManager.LayoutParams(

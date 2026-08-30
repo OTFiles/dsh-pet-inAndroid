@@ -129,6 +129,19 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
 
         override fun onDrawFrame(gl: GL10?) {
             framesDrawn++
+            if (framesDrawn == 30) {
+                // 黑屏排查：读回左下角像素。a=0 说明 GL 输出透明（问题在合成层），
+                // a=255 说明帧缓冲无 alpha（EGL 配置/surface 格式问题）。
+                try {
+                    val bb = java.nio.ByteBuffer.allocateDirect(4)
+                    GLES20.glReadPixels(2, 2, 1, 1, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, bb)
+                    com.dshpet.android.util.AppLog.log(
+                        "GL", "readPixels(2,2) rgba=(${bb.get(0).toInt()},${bb.get(1).toInt()},${bb.get(2).toInt()},${bb.get(3).toInt()})"
+                    )
+                } catch (e: Throwable) {
+                    com.dshpet.android.util.AppLog.log("GL", "readPixels 失败: ${e.message}")
+                }
+            }
             if (framesDrawn % 150 == 0) {
                 com.dshpet.android.util.AppLog.log(
                     "GL", "已渲染 $framesDrawn 帧，firstFrame=$firstFrameRendered name=$currentName"
