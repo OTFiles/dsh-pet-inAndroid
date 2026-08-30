@@ -177,6 +177,10 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
         setEGLContextClientVersion(2)
         // 纯 2D 全屏四边形：不需要 depth/stencil，放宽配置提高兼容性
         setEGLConfigChooser(8, 8, 8, 8, 0, 0)
+        // SurfaceView 的 surface 默认是 OPAQUE（无 alpha 通道），
+        // 置顶合成时逐像素透明不生效 → 黑底。必须显式设半透明格式
+        //（对应桌面端 WA_TranslucentBackground 的 surface 层等效）。
+        holder.setFormat(android.graphics.PixelFormat.TRANSLUCENT)
         setRenderer(renderer)
         renderMode = RENDERMODE_CONTINUOUSLY
         setZOrderOnTop(true)
