@@ -232,16 +232,6 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
         player.release()
     }
 
-    override fun onSurfaceDestroyed(gl: GL10?) {
-        // GL 表面重建时释放旧 surface，下次 onSurfaceCreated 重建并重连播放器
-        ready = false
-        surface?.release()
-        surfaceTexture?.release()
-        surface = null
-        surfaceTexture = null
-        mainHandler.post { player.setVideoSurface(null) }
-    }
-
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         ready = false
