@@ -3,6 +3,7 @@ package com.dshpet.android.pet
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.net.Uri
+import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.os.Handler
@@ -48,7 +49,9 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
     private var program = 0
     private var uTexLoc = 0
     private var uMirrorLoc = 0
+    private var uMLoc = 0
     private var mirror = false
+    private val stMatrix = FloatArray(16)
 
     private var ready = false
     private var currentName: String? = null
@@ -102,11 +105,12 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
             val ids = IntArray(1)
             GLES20.glGenTextures(1, ids, 0)
             textureId = ids[0]
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+            uMLoc = GLES20.glGetUniformLocation(program, "uM")
 
             val st = SurfaceTexture(textureId)
             st.setOnFrameAvailableListener { requestRender() }
@@ -150,12 +154,14 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
                 GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
                 return
             }
+            st.getTransformMatrix(stMatrix)
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
             GLES20.glUseProgram(program)
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
             GLES20.glUniform1i(uTexLoc, 0)
             GLES20.glUniform1f(uMirrorLoc, if (mirror) 1f else 0f)
+            GLES20.glUniformMatrix4fv(uMLoc, 1, false, stMatrix, 0)
 
             GLES20.glEnableVertexAttribArray(0)
             GLES20.glVertexAttribPointer(0, 2, GLES20.GL_FLOAT, false, 0, QUAD)
@@ -273,18 +279,23 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
                 position(0)
             }
 
+        // SurfaceTexture 输出必须绑定 GL_TEXTURE_EXTERNAL_OES 并用
+        // samplerExternalOES 采样（绑定成 GL_TEXTURE_2D 会采到空纹理 → 全黑）。
+        // uM 为 SurfaceTexture.getTransformMatrix() 的 UV 变换（含 Y 翻转）。
         private const val VERTEX_SHADER = """
             attribute vec2 aPos;
+            uniform mat4 uM;
             varying vec2 vUV;
             void main() {
-                vUV = aPos * 0.5 + 0.5;
+                vUV = (uM * vec4(aPos * 0.5 + 0.5, 0.0, 1.0)).xy;
                 gl_Position = vec4(aPos, 0.0, 1.0);
             }
         """
 
         private const val FRAGMENT_SHADER = """
+            #extension GL_OES_EGL_image_external : require
             precision mediump float;
-            uniform sampler2D uTex;
+            uniform samplerExternalOES uTex;
             uniform float uMirror;
             varying vec2 vUV;
             void main() {

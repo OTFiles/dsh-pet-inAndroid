@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -240,13 +241,17 @@ class PetConfig(private val ctx: Context) {
 /**
  * 每只桌宠实例独立的状态（位置/朝向）：多开时互不覆盖。
  * 存于独立 DataStore 文件 pet_state_<instanceId>。
+ *
+ * DataStore 必须进程内单例：同一文件多个 DataStore 实例会抛
+ * "multiple DataStores active"（服务关闭再启动即触发），
+ * 故用 companion 缓存按 instanceId 复用。
  */
-class PetState(private val ctx: Context, instanceId: Int) {
+class PetState(ctx: Context, instanceId: Int) {
 
-    private val Context.stateDs by preferencesDataStore(name = "pet_state_$instanceId")
+    private val ds = storeFor(ctx.applicationContext, instanceId)
 
     suspend fun load(): State {
-        val p = ctx.stateDs.data.first()
+        val p = ds.data.first()
         return State(
             x = p[intPreferencesKey("x")] ?: -1,
             y = p[intPreferencesKey("y")] ?: -1,
@@ -255,7 +260,7 @@ class PetState(private val ctx: Context, instanceId: Int) {
     }
 
     suspend fun save(s: State) {
-        ctx.stateDs.edit {
+        ds.edit {
             it[intPreferencesKey("x")] = s.x
             it[intPreferencesKey("y")] = s.y
             it[stringPreferencesKey("facing")] = s.facing
@@ -263,4 +268,18 @@ class PetState(private val ctx: Context, instanceId: Int) {
     }
 
     data class State(val x: Int = -1, val y: Int = -1, val facing: String = "left")
+
+    companion object {
+        private val stores = java.util.concurrent.ConcurrentHashMap<Int, androidx.datastore.preferences.core.DataStore<androidx.datastore.preferences.core.Preferences>>()
+
+        private fun storeFor(
+            ctx: Context,
+            id: Int,
+        ): androidx.datastore.preferences.core.DataStore<androidx.datastore.preferences.core.Preferences> =
+            stores.getOrPut(id) {
+                androidx.datastore.preferences.core.PreferenceDataStoreFactory.create {
+                    ctx.preferencesDataStoreFile("pet_state_$id")
+                }
+            }
+    }
 }
