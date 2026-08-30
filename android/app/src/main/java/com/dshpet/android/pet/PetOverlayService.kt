@@ -406,7 +406,7 @@ class PetOverlayService : Service() {
                     if (!pressActive) return@setOnTouchListener true
                     val dx = ev.rawX - downRawX
                     val dy = ev.rawY - downRawY
-                    val threshold = (PetEngine.DRAG_THRESHOLD * curScale * density).coerceAtLeast(12)
+                    val threshold = (PetEngine.DRAG_THRESHOLD * curScale * density).coerceAtLeast(12.0)
                     if (!dragging && hypot(dx.toDouble(), dy.toDouble()) > threshold) {
                         if (curShiftDrag && !longPressFired) {
                             // 仅长按可拖动：未长按的拖动被忽略，且取消按压状态
