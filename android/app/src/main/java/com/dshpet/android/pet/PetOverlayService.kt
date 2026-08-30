@@ -107,7 +107,7 @@ class PetOverlayService : Service() {
     private var density = 1f
     private var curScale = 0.72
     private var curOpacity = 100
-    internal var curSpeed = 1.0
+    internal var curSpeed = PetConfig.DEFAULT_PLAYBACK_SPEED
     private var curNoMove = false
     internal var curLock = false
     private var curShiftDrag = false
@@ -257,24 +257,30 @@ class PetOverlayService : Service() {
         val st = stateStore!!.load()
         val (sx, sy) = screenPx()
         val savedX = st.x; val savedY = st.y
-        val defaultX = sx - engine.winW - 24
-        val defaultY = sy - engine.winH - 24
+        // 默认右下角：以鱼身（内容区）为参照贴边（右 70%、底 92% 处）
+        val defaultX = (sx - engine.winW * 0.70 - 24).toInt()
+        val defaultY = (sy - engine.winH * 0.92 - 12).toInt()
         engine.setFacing(st.facing.ifEmpty { "left" })
         videoView.setMirror(engine.shouldMirror(engine.anim ?: ""))
         // 多开错位：新实例向右上偏移，避免与母体重叠
         val offsetX = if (instanceId > 0) (instanceId * 48).coerceAtMost(engine.winW / 2) else 0
         val offsetY = if (instanceId > 0) (instanceId * 32).coerceAtMost(engine.winH / 2) else 0
+        val xr = windowXRange(); val yr = windowYRange()
         engine.setPosition(
-            if (savedX >= 0) savedX.coerceIn(0, maxOf(0, sx - engine.winW))
-            else (defaultX - offsetX).coerceAtLeast(0),
-            if (savedY >= 0) savedY.coerceIn(0, maxOf(0, sy - engine.winH))
-            else (defaultY - offsetY).coerceAtLeast(0),
+            if (savedX >= 0) savedX.coerceIn(xr.first, xr.last)
+            else (defaultX - offsetX).coerceIn(xr.first, xr.last),
+            if (savedY >= 0) savedY.coerceIn(yr.first, yr.last)
+            else (defaultY - offsetY).coerceIn(yr.first, yr.last),
         )
+        syncEngineScreenBounds()
 
         // 气泡
         bubble = SpeechBubble(this, engine, config)
         bubble?.bubbleStyle = config.selfTalkBubbleStyle()
         bubble?.blurOn = config.blurEnabled() && Build.VERSION.SDK_INT >= 31
+
+        // 播放速度（默认 1.5x）
+        curSpeed = config.playbackSpeed()
 
         // 自言自语素材缓存（供非协程回调使用）
         curSelfTalkTexts = config.selfTalkTexts().toList()
@@ -490,7 +496,8 @@ class PetOverlayService : Service() {
         if (curClickSound) playClickSound()
         if (curClickBalance) {
             showBalanceInBubble()
-        } else if (curClickSelfTalk && curSelfTalk) {
+        } else if (curClickSelfTalk) {
+            // 点击自言自语独立于周期性自言自语总开关
             showRandomSelfTalk()
         }
     }
@@ -516,12 +523,9 @@ class PetOverlayService : Service() {
     private fun moveWindow(xPx: Int, yPx: Int) {
         val lp = params ?: return
         val c = container ?: return
-        val (sw, sh) = screenPx()
-        // 屏幕比窗口还小时取 0，避免空区间 coerce 崩溃
-        val maxX = maxOf(0, sw - engine.winW)
-        val maxY = maxOf(0, sh - engine.winH)
-        val cx = xPx.coerceIn(0, maxX)
-        val cy = yPx.coerceIn(0, maxY)
+        // 溢出 clamp：鱼身视觉贴边（见 overflowX 注释）
+        val cx = xPx.coerceIn(windowXRange())
+        val cy = yPx.coerceIn(windowYRange())
         lp.x = cx
         lp.y = cy
         runCatching { wm.updateViewLayout(c, lp) }
@@ -530,11 +534,11 @@ class PetOverlayService : Service() {
 
     private fun tickPhysics() {
         val mode = physMode ?: return
-        val (sw, sh) = screenPx()
-        val left = 0
-        val top = 0
-        val right = maxOf(0, sw - engine.winW)
-        val bottom = maxOf(0, sh - engine.winH)
+        val xr = windowXRange(); val yr = windowYRange()
+        val left = xr.first
+        val top = yr.first
+        val right = xr.last
+        val bottom = yr.last
         if (right <= left || bottom <= top) { physMode = null; return }
         if (mode == "drag") {
             val k = 200.0; val c = 30.0
@@ -586,16 +590,17 @@ class PetOverlayService : Service() {
                 lp.width = ww
                 lp.height = wh
                 runCatching { wm.updateViewLayout(c, lp) }
-                // 保持右下角锚点
+                // 保持右下角锚点（以鱼身为参照）
                 val (sw, sh) = screenPx()
                 engine.setPosition(
-                    (sw - engine.winW - 24).coerceAtLeast(0),
-                    (sh - engine.winH - 24).coerceAtLeast(0),
+                    (sw - engine.winW * 0.70 - 24).toInt().coerceAtLeast(0),
+                    (sh - engine.winH * 0.92 - 12).toInt().coerceAtLeast(0),
                 )
+                syncEngineScreenBounds()
             }
         }
         watch(c.flowInt("pet_opacity", 100)) { v -> curOpacity = (v as Int).coerceIn(10, 100); applyOpacity() }
-        watch(c.flowDouble("playback_speed", 1.0)) { v -> curSpeed = v as Double; videoView.setPlaybackSpeed(curSpeed.toFloat()) }
+        watch(c.flowDouble("playback_speed", PetConfig.DEFAULT_PLAYBACK_SPEED)) { v -> curSpeed = v as Double; videoView.setPlaybackSpeed(curSpeed.toFloat()) }
         watch(c.flowBool("no_move", false)) { v -> curNoMove = v as Boolean; engine.noMove = curNoMove }
         watch(c.flowBool("lock_position", false)) { v -> curLock = v as Boolean }
         watch(c.flowBool("shift_drag", false)) { v -> curShiftDrag = v as Boolean }
@@ -814,6 +819,37 @@ class PetOverlayService : Service() {
         val w = (sw * frac).toInt().coerceIn(160, sw * 92 / 100)
         val h = w * 9 / 16
         return w to h
+    }
+
+    // ---- 溢出边界 ----
+    // 素材画布（640x360）里常驻动画的内容只占约 x[30%..70%]、y[8%..92%]，
+    // 窗口贴屏幕边时鱼身看起来悬空。允许窗口越出屏幕一段（≈透明边距），
+    // 使鱼身而非不可见边框贴边。特效类动画（放烟花等）内容更宽，取保守值。
+    private fun overflowX(): Int = (engine.winW * 0.26).toInt()
+    private fun overflowY(): Int = (engine.winH * 0.10).toInt()
+
+    /** 窗口水平可移动范围（含溢出） */
+    private fun windowXRange(): IntRange {
+        val (sw, _) = screenPx()
+        val ov = overflowX()
+        return -ov..maxOf(-ov, sw - engine.winW + ov)
+    }
+
+    /** 窗口垂直可移动范围（含溢出） */
+    private fun windowYRange(): IntRange {
+        val (_, sh) = screenPx()
+        val ov = overflowY()
+        return -ov..maxOf(-ov, sh - engine.winH + ov)
+    }
+
+    /** 同步引擎屏幕边界（自动散步范围；含溢出） */
+    private fun syncEngineScreenBounds() {
+        val xr = windowXRange()
+        val yr = windowYRange()
+        engine.screenLeft = xr.first
+        engine.screenRight = xr.last + engine.winW
+        engine.screenTop = yr.first
+        engine.screenBottom = yr.last + engine.winH
     }
 
     fun requireOverlayPermission(): Boolean = Settings.canDrawOverlays(this)

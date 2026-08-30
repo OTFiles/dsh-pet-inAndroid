@@ -35,6 +35,9 @@ class PetConfig(private val ctx: Context) {
         // ---- 缩放档位（相对 640 宽，与原 SCALE_STEPS 一致）----
         val SCALE_STEPS = listOf(0.5, 0.72, 0.85, 1.0)
 
+        /** 默认播放速度（手机上 1x 偏慢，默认 1.5x） */
+        const val DEFAULT_PLAYBACK_SPEED = 1.5
+
         private val K_CHARACTER = stringPreferencesKey("character")
         private val K_SCALE = doublePreferencesKey("scale")
         private val K_FACING = stringPreferencesKey("facing")
@@ -103,7 +106,7 @@ class PetConfig(private val ctx: Context) {
     suspend fun shiftDrag() = read(K_SHIFT_DRAG, false)
     suspend fun dragPhysics() = read(K_DRAG_PHYSICS, false)
     suspend fun petOpacity() = read(K_PET_OPACITY, 100).coerceIn(10, 100)
-    suspend fun playbackSpeed() = read(K_PLAYBACK_SPEED, 1.0).coerceIn(0.5, 3.0)
+    suspend fun playbackSpeed() = read(K_PLAYBACK_SPEED, DEFAULT_PLAYBACK_SPEED).coerceIn(0.5, 3.0)
     suspend fun animGapSeconds() = read(K_ANIM_GAP_SEC, 0.0).coerceIn(0.0, 3600.0)
     suspend fun clickSound() = read(K_CLICK_SOUND, true)
     suspend fun clickShowBalance() = read(K_CLICK_SHOW_BALANCE, false)

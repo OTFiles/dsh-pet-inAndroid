@@ -12,12 +12,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,8 +45,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -350,7 +353,7 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
     val lock by cfg.flowBool("lock_position", false).collectAsState(initial = false)
     val shiftDrag by cfg.flowBool("shift_drag", false).collectAsState(initial = false)
     val physics by cfg.flowBool("drag_physics", false).collectAsState(initial = false)
-    val speed by cfg.flowDouble("playback_speed", 1.0).collectAsState(initial = 1.0)
+    val speed by cfg.flowDouble("playback_speed", PetConfig.DEFAULT_PLAYBACK_SPEED).collectAsState(initial = PetConfig.DEFAULT_PLAYBACK_SPEED)
     val gap by cfg.flowDouble("animation_gap_seconds", 0.0).collectAsState(initial = 0.0)
     val clickSound by cfg.flowBool("click_sound_enabled", true).collectAsState(initial = true)
     val clickBalance by cfg.flowBool("click_show_balance", false).collectAsState(initial = false)
@@ -448,20 +451,49 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
                 )
                 Text("${stMin}s", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
-            var styleOpen by remember { mutableStateOf(false) }
-            SettingRow("气泡样式", subtitle = styleLabel(bubbleStyle), trailing = {
-                Box {
-                    TextButton(onClick = { styleOpen = true }) { Text("选择") }
-                    DropdownMenu(expanded = styleOpen, onDismissRequest = { styleOpen = false }) {
-                        listOf("classic_top", "soft_blue_top", "glass_right", "paper_left", "breath_bubble").forEach { s ->
-                            DropdownMenuItem(text = { Text(styleLabel(s)) }, onClick = {
-                                scope.launch { cfg.setSelfTalkBubbleStyle(s) }
-                                styleOpen = false
-                            })
-                        }
+            // 气泡样式：MD3 FilterChip 单选组 + 颜色预览
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                Text(
+                    "气泡样式",
+                    Modifier.padding(start = 4.dp, top = 4.dp),
+                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(
+                        "classic_top" to 0xFFFFFFFF,
+                        "soft_blue_top" to 0xFFD6E6FF,
+                        "glass_right" to 0xCCFFFFFF,
+                        "paper_left" to 0xFFFFF8E1,
+                        "breath_bubble" to 0xFFE8F5FF,
+                    ).forEach { (id, color) ->
+                        FilterChip(
+                            selected = bubbleStyle == id,
+                            onClick = { scope.launch { cfg.setSelfTalkBubbleStyle(id) } },
+                            label = { Text(styleLabel(id)) },
+                            leadingIcon = {
+                                Box(
+                                    Modifier
+                                        .padding(start = 2.dp)
+                                        .size(14.dp)
+                                        .background(
+                                            androidx.compose.ui.graphics.Color(color),
+                                            androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                                        )
+                                        .border(
+                                            0.5.dp,
+                                            MaterialTheme.colorScheme.outline,
+                                            androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                                        )
+                                )
+                            },
+                        )
                     }
                 }
-            })
+            }
         }
     }
 }
