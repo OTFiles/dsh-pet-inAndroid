@@ -80,7 +80,6 @@ class PetMenu(
     private val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var view: View? = null
     private var params: WindowManager.LayoutParams? = null
-    private val density = ctx.resources.displayMetrics.density
 
     fun show() {
         if (view != null) return
@@ -114,16 +113,14 @@ class PetMenu(
         composeView.post {
             val bw = composeView.measuredWidth
             val bh = composeView.measuredHeight
-            val (sw, sh) = screenDp()
-            val bwDp = px2dp(bw)
-            val bhDp = px2dp(bh)
+            val (sw, sh) = screenPx()
             val petCx = engine.winX + engine.winW / 2
-            var x = petCx - bwDp / 2
-            x = x.coerceIn(8f, sw - bwDp - 8f)
-            var y = engine.winY - bhDp - 12f
-            if (y < 0f) y = engine.winY + engine.winH + 12f
-            y = y.coerceIn(0f, sh - bhDp)
-            lp.x = dp2px(x.roundToInt()); lp.y = dp2px(y.roundToInt())
+            var x = petCx - bw / 2
+            x = x.coerceIn(8, maxOf(8, sw - bw - 8))
+            var y = engine.winY - bh - 12
+            if (y < 0) y = engine.winY + engine.winH + 12
+            y = y.coerceIn(0, maxOf(0, sh - bh))
+            lp.x = x; lp.y = y
             runCatching { wm.updateViewLayout(composeView, lp) }
         }
     }
@@ -133,18 +130,15 @@ class PetMenu(
         view = null
     }
 
-    private fun screenDp(): Pair<Int, Int> {
+    private fun screenPx(): Pair<Int, Int> {
         val bounds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             wm.currentWindowMetrics.bounds
         } else {
             @Suppress("DEPRECATION")
             android.graphics.Rect(0, 0, ctx.resources.displayMetrics.widthPixels, ctx.resources.displayMetrics.heightPixels)
         }
-        return px2dp(bounds.width()).roundToInt() to px2dp(bounds.height()).roundToInt()
+        return bounds.width() to bounds.height()
     }
-
-    private fun dp2px(v: Int): Int = (v * density).roundToInt()
-    private fun px2dp(v: Int): Float = v / density
 
     // ================================================================ UI
     @Composable

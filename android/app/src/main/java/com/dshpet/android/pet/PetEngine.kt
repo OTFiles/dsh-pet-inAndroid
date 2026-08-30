@@ -181,11 +181,14 @@ class PetEngine(
         if (moves.isEmpty()) return false
         val dirSign = if (facing == "right") 1 else -1
         val cx = winX + winW / 2.0
-        val distance = random.nextInt(MOVE_MIN_PX, MOVE_MAX_PX + 1).toDouble()
+        // 移动距离/边距按窗口宽度等比缩放（桌面 640 宽为基准）
+        val distScale = winW / 640.0
+        val distance = random.nextInt(MOVE_MIN_PX, MOVE_MAX_PX + 1) * distScale
         val targetCx = cx + dirSign * distance
         val halfW = winW / 2.0
-        val leftBound = screenLeft + MOVE_MARGIN + halfW
-        val rightBound = screenRight - MOVE_MARGIN - halfW
+        val margin = (MOVE_MARGIN * distScale).toInt()
+        val leftBound = screenLeft + margin + halfW
+        val rightBound = screenRight - margin - halfW
         if (targetCx < leftBound || targetCx > rightBound) return false
 
         val moveName = name ?: moves.pick()

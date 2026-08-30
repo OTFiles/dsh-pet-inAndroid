@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.PixelFormat
-import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -237,9 +236,10 @@ class PetOverlayService : Service() {
             currentPositionSecProvider = { videoView.currentPositionMs() / 1000.0 }
         }
 
-        // 窗口尺寸（dp）
+        // 窗口尺寸（物理像素，带上限保护：异常大 density 设备不溢出屏幕）
         curScale = config.scale()
-        engine.setWindowSize(640.dp(), 360.dp())
+        val (ww, wh) = windowSizePx()
+        engine.setWindowSize(ww, wh)
 
         buildWindow()
 
@@ -251,19 +251,19 @@ class PetOverlayService : Service() {
 
         // 恢复位置与朝向
         val st = stateStore!!.load()
-        val (sx, sy) = screenDp()
+        val (sx, sy) = screenPx()
         val savedX = st.x; val savedY = st.y
-        val defaultX = sx - engine.winW - 24.dp()
-        val defaultY = sy - engine.winH - 24.dp()
+        val defaultX = sx - engine.winW - 24
+        val defaultY = sy - engine.winH - 24
         engine.setFacing(st.facing.ifEmpty { "left" })
         videoView.setMirror(engine.shouldMirror(engine.anim ?: ""))
         // 多开错位：新实例向右上偏移，避免与母体重叠
         val offsetX = if (instanceId > 0) (instanceId * 48).coerceAtMost(engine.winW / 2) else 0
         val offsetY = if (instanceId > 0) (instanceId * 32).coerceAtMost(engine.winH / 2) else 0
         engine.setPosition(
-            if (savedX >= 0) savedX.coerceIn(0, sx - engine.winW)
+            if (savedX >= 0) savedX.coerceIn(0, maxOf(0, sx - engine.winW))
             else (defaultX - offsetX).coerceAtLeast(0),
-            if (savedY >= 0) savedY.coerceIn(0, sy - engine.winH)
+            if (savedY >= 0) savedY.coerceIn(0, maxOf(0, sy - engine.winH))
             else (defaultY - offsetY).coerceAtLeast(0),
         )
 
@@ -313,8 +313,8 @@ class PetOverlayService : Service() {
 
     private fun buildWindow() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        val w = engine.winW.dp()
-        val h = engine.winH.dp()
+        val w = engine.winW
+        val h = engine.winH
         val lp = WindowManager.LayoutParams(
             w, h,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -388,7 +388,7 @@ class PetOverlayService : Service() {
                     downRawX = ev.rawX; downRawY = ev.rawY
                     lastMoveMs = System.currentTimeMillis()
                     trail.clear()
-                    trail.add(Triple(lastMoveMs, px2dp(ev.rawX), px2dp(ev.rawY)))
+                    trail.add(Triple(lastMoveMs, ev.rawX, ev.rawY))
                     physPos = doubleArrayOf(engine.winX.toDouble(), engine.winY.toDouble())
                     physVel = doubleArrayOf(0.0, 0.0)
                     physMode = null
@@ -406,7 +406,7 @@ class PetOverlayService : Service() {
                     if (!pressActive) return@setOnTouchListener true
                     val dx = ev.rawX - downRawX
                     val dy = ev.rawY - downRawY
-                    val threshold = (PetEngine.DRAG_THRESHOLD * curScale * density)
+                    val threshold = (PetEngine.DRAG_THRESHOLD * curScale * density).coerceAtLeast(12)
                     if (!dragging && hypot(dx.toDouble(), dy.toDouble()) > threshold) {
                         if (curShiftDrag && !longPressFired) {
                             // 仅长按可拖动：未长按的拖动被忽略，且取消按压状态
@@ -422,16 +422,16 @@ class PetOverlayService : Service() {
                     if (dragging) {
                         if (curPhysics) {
                             val now = System.currentTimeMillis()
-                            trail.add(Triple(now, px2dp(ev.rawX), px2dp(ev.rawY)))
+                            trail.add(Triple(now, ev.rawX, ev.rawY))
                             val cutoff = now - (PetEngine.TRAIL_KEEP_SEC * 1000).toLong()
                             trail = trail.filter { it.first >= cutoff }.toMutableList()
-                            dragTargetX = px2dp(ev.rawX - (downRawX - engine.winX * density)).toInt()
-                            dragTargetY = px2dp(ev.rawY - (downRawY - engine.winY * density)).toInt()
+                            dragTargetX = (ev.rawX - (downRawX - engine.winX)).toInt()
+                            dragTargetY = (ev.rawY - (downRawY - engine.winY)).toInt()
                             physMode = "drag"
                         } else {
                             moveWindow(
-                                px2dp(ev.rawX - (downRawX - engine.winX * density)).toInt(),
-                                px2dp(ev.rawY - (downRawY - engine.winY * density)).toInt(),
+                                (ev.rawX - (downRawX - engine.winX)).toInt(),
+                                (ev.rawY - (downRawY - engine.winY)).toInt(),
                             )
                         }
                     }
@@ -507,26 +507,29 @@ class PetOverlayService : Service() {
     }
 
     // ================================================================ 移动窗口
-    private fun moveWindow(xDp: Int, yDp: Int) {
+    private fun moveWindow(xPx: Int, yPx: Int) {
         val lp = params ?: return
         val c = container ?: return
-        val (sw, sh) = screenDp()
-        val cx = xDp.coerceIn(0, sw - engine.winW)
-        val cy = yDp.coerceIn(0, sh - engine.winH)
-        lp.x = cx.dp()
-        lp.y = cy.dp()
+        val (sw, sh) = screenPx()
+        // 屏幕比窗口还小时取 0，避免空区间 coerce 崩溃
+        val maxX = maxOf(0, sw - engine.winW)
+        val maxY = maxOf(0, sh - engine.winH)
+        val cx = xPx.coerceIn(0, maxX)
+        val cy = yPx.coerceIn(0, maxY)
+        lp.x = cx
+        lp.y = cy
         runCatching { wm.updateViewLayout(c, lp) }
         engine.syncPosition(cx, cy)
     }
 
     private fun tickPhysics() {
         val mode = physMode ?: return
-        val (sw, sh) = screenDp()
+        val (sw, sh) = screenPx()
         val left = 0
         val top = 0
-        val right = sw - engine.winW
-        val bottom = sh - engine.winH
-        if (right < left || bottom < top) { physMode = null; return }
+        val right = maxOf(0, sw - engine.winW)
+        val bottom = maxOf(0, sh - engine.winH)
+        if (right <= left || bottom <= top) { physMode = null; return }
         if (mode == "drag") {
             val k = 200.0; val c = 30.0
             val dt = 0.016
@@ -569,18 +572,19 @@ class PetOverlayService : Service() {
             curScale = (v as Double)
             // 缩放变化：重建窗口尺寸，保留脚底位置
             val oldW = engine.winW
-            engine.setWindowSize(640.dp(), 360.dp())
+            val (ww, wh) = windowSizePx()
+            engine.setWindowSize(ww, wh)
             if (oldW != engine.winW) {
                 val lp = params ?: return@watch
                 val c = container ?: return@watch
-                lp.width = engine.winW.dp()
-                lp.height = engine.winH.dp()
+                lp.width = ww
+                lp.height = wh
                 runCatching { wm.updateViewLayout(c, lp) }
                 // 保持右下角锚点
-                val (sw, sh) = screenDp()
+                val (sw, sh) = screenPx()
                 engine.setPosition(
-                    (sw - engine.winW - 24.dp()).coerceAtLeast(0),
-                    (sh - engine.winH - 24.dp()).coerceAtLeast(0),
+                    (sw - engine.winW - 24).coerceAtLeast(0),
+                    (sh - engine.winH - 24).coerceAtLeast(0),
                 )
             }
         }
@@ -716,10 +720,10 @@ class PetOverlayService : Service() {
     /** 回到右下角（默认角落） */
     fun returnToCorner() {
         engine.cancelMove()
-        val (sw, sh) = screenDp()
+        val (sw, sh) = screenPx()
         engine.setPosition(
-            (sw - engine.winW - 24.dp()).coerceAtLeast(0),
-            (sh - engine.winH - 24.dp()).coerceAtLeast(0),
+            (sw - engine.winW - 24).coerceAtLeast(0),
+            (sh - engine.winH - 24).coerceAtLeast(0),
         )
         savePosition()
     }
@@ -785,21 +789,26 @@ class PetOverlayService : Service() {
     }
 
     // ================================================================ 工具
-    private fun screenDp(): Pair<Int, Int> {
+    /** 屏幕物理像素 */
+    private fun screenPx(): Pair<Int, Int> {
         val bounds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val wm2 = getSystemService(WINDOW_SERVICE) as WindowManager
-            wm2.currentWindowMetrics.bounds
+            (getSystemService(WINDOW_SERVICE) as WindowManager).currentWindowMetrics.bounds
         } else {
             @Suppress("DEPRECATION")
-            val dm = resources.displayMetrics
-            Rect(0, 0, dm.widthPixels, dm.heightPixels)
+            android.graphics.Rect(0, 0, resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
         }
-        return px2dp(bounds.width()).toInt() to px2dp(bounds.height()).toInt()
+        return bounds.width() to bounds.height()
     }
 
-    fun Int.dp(): Int = (this * density).roundToInt()
-    fun px2dp(px: Float): Float = px / density
-    fun px2dp(px: Int): Float = px / density
+    /** 桌宠窗口物理像素尺寸：按屏幕宽度比例（scale=0.72 → 42% 屏宽），
+     *  与设备 density 无关，异常大密度设备也不会溢出。 */
+    private fun windowSizePx(): Pair<Int, Int> {
+        val (sw, _) = screenPx()
+        val frac = 0.42 * curScale / 0.72
+        val w = (sw * frac).toInt().coerceIn(160, sw * 92 / 100)
+        val h = w * 9 / 16
+        return w to h
+    }
 
     fun requireOverlayPermission(): Boolean = Settings.canDrawOverlays(this)
 }
