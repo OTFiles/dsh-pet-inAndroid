@@ -133,6 +133,8 @@ class PetOverlayService : Service() {
     private var downY = 0f
     private var downRawX = 0f
     private var downRawY = 0f
+    private var grabOffsetX = 0f  // 按下时固定：手指 - 窗口左上角（px）
+    private var grabOffsetY = 0f
     private var dragging = false
     private var longPressFired = false
     private var justDragged = false
@@ -386,6 +388,8 @@ class PetOverlayService : Service() {
                     justDragged = false
                     downX = ev.x; downY = ev.y
                     downRawX = ev.rawX; downRawY = ev.rawY
+                    grabOffsetX = downRawX - engine.winX
+                    grabOffsetY = downRawY - engine.winY
                     lastMoveMs = System.currentTimeMillis()
                     trail.clear()
                     trail.add(Triple(lastMoveMs, ev.rawX, ev.rawY))
@@ -425,13 +429,13 @@ class PetOverlayService : Service() {
                             trail.add(Triple(now, ev.rawX, ev.rawY))
                             val cutoff = now - (PetEngine.TRAIL_KEEP_SEC * 1000).toLong()
                             trail = trail.filter { it.first >= cutoff }.toMutableList()
-                            dragTargetX = (ev.rawX - (downRawX - engine.winX)).toInt()
-                            dragTargetY = (ev.rawY - (downRawY - engine.winY)).toInt()
+                            dragTargetX = (ev.rawX - grabOffsetX).toInt()
+                            dragTargetY = (ev.rawY - grabOffsetY).toInt()
                             physMode = "drag"
                         } else {
                             moveWindow(
-                                (ev.rawX - (downRawX - engine.winX)).toInt(),
-                                (ev.rawY - (downRawY - engine.winY)).toInt(),
+                                (ev.rawX - grabOffsetX).toInt(),
+                                (ev.rawY - grabOffsetY).toInt(),
                             )
                         }
                     }

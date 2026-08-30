@@ -52,6 +52,8 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
 
     private var ready = false
     private var currentName: String? = null
+    private var firstFrameRendered = false
+    private var framesDrawn = 0
 
     private val player: ExoPlayer by lazy {
         ExoPlayer.Builder(context).build().apply {
@@ -60,7 +62,14 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
                     if (state == Player.STATE_ENDED) {
                         val n = currentName
                         if (n != null) mainHandler.post { listener?.onVideoEnded(n) }
+                    } else if (state == Player.STATE_READY) {
+                        firstFrameWatchdog()
                     }
+                }
+
+                override fun onRenderedFirstFrame() {
+                    firstFrameRendered = true
+                    com.dshpet.android.util.AppLog.log("VIDEO", "首帧已渲染: $currentName")
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -85,6 +94,11 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
             program = createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
             uTexLoc = GLES20.glGetUniformLocation(program, "uTex")
             uMirrorLoc = GLES20.glGetUniformLocation(program, "uMirror")
+            com.dshpet.android.util.AppLog.log(
+                "GL",
+                "surface created: renderer=${GLES20.glGetString(GLES20.GL_RENDERER)} " +
+                        "version=${GLES20.glGetString(GLES20.GL_VERSION)} program=$program"
+            )
             val ids = IntArray(1)
             GLES20.glGenTextures(1, ids, 0)
             textureId = ids[0]
@@ -110,6 +124,12 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
         }
 
         override fun onDrawFrame(gl: GL10?) {
+            framesDrawn++
+            if (framesDrawn % 150 == 0) {
+                com.dshpet.android.util.AppLog.log(
+                    "GL", "已渲染 $framesDrawn 帧，firstFrame=$firstFrameRendered name=$currentName"
+                )
+            }
             try {
                 onDrawFrameInternal()
             } catch (e: Throwable) {
@@ -149,7 +169,8 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
 
     init {
         setEGLContextClientVersion(2)
-        setEGLConfigChooser(8, 8, 8, 8, 16, 8)
+        // 纯 2D 全屏四边形：不需要 depth/stencil，放宽配置提高兼容性
+        setEGLConfigChooser(8, 8, 8, 8, 0, 0)
         setRenderer(renderer)
         renderMode = RENDERMODE_CONTINUOUSLY
         setZOrderOnTop(true)
@@ -211,11 +232,46 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
         player.release()
     }
 
+    override fun onSurfaceDestroyed(gl: GL10?): Boolean {
+        // GL 表面重建时释放旧 surface，下次 onSurfaceCreated 重建并重连播放器
+        ready = false
+        surface?.release()
+        surfaceTexture?.release()
+        surface = null
+        surfaceTexture = null
+        mainHandler.post { player.setVideoSurface(null) }
+        return true
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         ready = false
         surface?.release()
         surfaceTexture?.release()
+    }
+
+    /** 播放就绪后 5 秒仍无首帧 → 记录日志并重连 surface 重试（排查黑屏） */
+    private fun firstFrameWatchdog() {
+        if (firstFrameRendered) return
+        mainHandler.postDelayed({
+            if (!firstFrameRendered) {
+                com.dshpet.android.util.AppLog.log(
+                    "VIDEO", "就绪后 5s 未渲染首帧！surfaceReady=$ready name=$currentName"
+                )
+                // 重连 surface + 从头播放
+                if (ready && currentName != null) {
+                    runCatching {
+                        val p = currentName
+                        player.setVideoSurface(null)
+                        player.setVideoSurface(surface)
+                        player.pause()
+                        player.seekTo(0)
+                        player.playWhenReady = true
+                        mainHandler.post { firstFrameWatchdog() }
+                    }
+                }
+            }
+        }, 5000)
     }
 
     companion object {
