@@ -1,6 +1,9 @@
 package com.dshpet.android.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -270,14 +273,11 @@ class PetState(ctx: Context, instanceId: Int) {
     data class State(val x: Int = -1, val y: Int = -1, val facing: String = "left")
 
     companion object {
-        private val stores = java.util.concurrent.ConcurrentHashMap<Int, androidx.datastore.preferences.core.DataStore<androidx.datastore.preferences.core.Preferences>>()
+        private val stores = java.util.concurrent.ConcurrentHashMap<Int, DataStore<Preferences>>()
 
-        private fun storeFor(
-            ctx: Context,
-            id: Int,
-        ): androidx.datastore.preferences.core.DataStore<androidx.datastore.preferences.core.Preferences> =
+        private fun storeFor(ctx: Context, id: Int): DataStore<Preferences> =
             stores.getOrPut(id) {
-                androidx.datastore.preferences.core.PreferenceDataStoreFactory.create {
+                PreferenceDataStoreFactory.create {
                     ctx.preferencesDataStoreFile("pet_state_$id")
                 }
             }
