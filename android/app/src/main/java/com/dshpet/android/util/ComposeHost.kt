@@ -8,11 +8,11 @@ import androidx.compose.ui.platform.LocalSavedStateRegistryOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.ViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 
 /**
  * 为"非 Activity 上下文"里创建的 ComposeView（悬浮窗菜单/气泡）提供
@@ -37,8 +37,8 @@ internal object ComposeHostOwner : LifecycleOwner, SavedStateRegistryOwner {
 
 /** 悬浮窗 ComposeView addView 前必须调用：把宿主 owners 挂到 ViewTree */
 fun View.attachComposeHost() {
-    ViewTreeLifecycleOwner.set(this, ComposeHostOwner)
-    ViewTreeSavedStateRegistryOwner.set(this, ComposeHostOwner)
+    setViewTreeLifecycleOwner(ComposeHostOwner)
+    setViewTreeSavedStateRegistryOwner(ComposeHostOwner)
 }
 
 @Composable

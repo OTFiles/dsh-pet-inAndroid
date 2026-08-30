@@ -65,7 +65,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime:2.8.2")
     implementation("androidx.savedstate:savedstate:1.2.1")
     implementation("androidx.savedstate:savedstate-ktx:1.2.1")
-    implementation("androidx.lifecycle:lifecycle-viewtree:2.8.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
     implementation("androidx.compose.ui:ui")
