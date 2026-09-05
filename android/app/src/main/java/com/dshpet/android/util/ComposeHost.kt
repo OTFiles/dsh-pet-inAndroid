@@ -30,6 +30,13 @@ internal object ComposeHostOwner : LifecycleOwner, SavedStateRegistryOwner {
     }
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
 
+    init {
+        // 非 Activity 组件：必须显式 attach 才允许消费恢复状态
+        // （否则 rememberSaveable 触发 "consumeRestoredStateForKey only
+        // after super.onCreate" 崩溃）
+        savedStateRegistryController.performAttach()
+    }
+
     override val lifecycle: Lifecycle get() = lifecycleRegistry
     override val savedStateRegistry: SavedStateRegistry
         get() = savedStateRegistryController.savedStateRegistry
