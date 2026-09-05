@@ -376,6 +376,9 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
     val physics by cfg.flowBool("drag_physics", false).collectAsState(initial = false)
     val speed by cfg.flowDouble("playback_speed", PetConfig.DEFAULT_PLAYBACK_SPEED).collectAsState(initial = PetConfig.DEFAULT_PLAYBACK_SPEED)
     val gap by cfg.flowDouble("animation_gap_seconds", 0.0).collectAsState(initial = 0.0)
+    val moveProb by cfg.flowDouble("move_probability", 0.20).collectAsState(initial = 0.20)
+    val moveMinPx by cfg.flowInt("move_min_px", 60).collectAsState(initial = 60)
+    val moveMaxPx by cfg.flowInt("move_max_px", 240).collectAsState(initial = 240)
     val clickSound by cfg.flowBool("click_sound_enabled", true).collectAsState(initial = true)
     val clickBalance by cfg.flowBool("click_show_balance", false).collectAsState(initial = false)
     val clickSelfTalk by cfg.flowBool("click_show_self_talk", false).collectAsState(initial = false)
@@ -450,6 +453,7 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
 @Composable
 private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.coroutines.CoroutineScope) {
     val scale by cfg.flowDouble("scale", 0.72).collectAsState(initial = 0.72)
+    val menuScale by cfg.flowDouble("menu_scale", 1.0).collectAsState(initial = 1.0)
     val opacity by cfg.flowInt("pet_opacity", 100).collectAsState(initial = 100)
     val facing by cfg.flowString("facing", "left").collectAsState(initial = "left")
     val blur by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
