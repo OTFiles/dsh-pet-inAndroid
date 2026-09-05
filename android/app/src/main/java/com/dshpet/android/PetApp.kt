@@ -33,6 +33,7 @@ class PetApp : Application() {
             val cfg = PetConfig.get(this@PetApp)
             // 同步 launcher 入口（隐藏后台开关）与开机自启接收器状态
             PetConfig.hideRecentsCached = cfg.hideFromRecents()
+            com.dshpet.android.pet.PetOverlayService.maxInstances = cfg.maxInstances()
             MainActivity.applyRecentsAlias(this@PetApp, cfg.hideFromRecents())
             setBootReceiverEnabled(cfg.autoStart())
             if (cfg.autoStart() && cfg.overlayPermissionGranted()) {

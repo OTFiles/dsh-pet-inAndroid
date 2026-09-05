@@ -56,8 +56,12 @@ open class PetOverlayService : Service() {
         const val EXTRA_INSTANCE = "instance_id"
         private const val TAG = "PetOverlay"
 
-        /** 最多同时 4 只（id 0..3），低内存设备保护 */
-        const val MAX_INSTANCES = 4
+        /** 服务子类硬上限（0..9 共 10 个实例槽位；设置里可配 0=不限） */
+        const val SLOT_COUNT = 10
+
+        /** 进程级多开上限缓存（设置可调；0 = 无限制；PetApp 启动时同步） */
+        @Volatile
+        var maxInstances: Int = 4
 
         /** 实例号 → 服务类（Android 同一 Service 类只有一个对象，
          *  多开必须用不同服务类隔离窗口/引擎状态） */
@@ -65,6 +69,12 @@ open class PetOverlayService : Service() {
             1 -> PetOverlayService1::class.java
             2 -> PetOverlayService2::class.java
             3 -> PetOverlayService3::class.java
+            4 -> PetOverlayService4::class.java
+            5 -> PetOverlayService5::class.java
+            6 -> PetOverlayService6::class.java
+            7 -> PetOverlayService7::class.java
+            8 -> PetOverlayService8::class.java
+            9 -> PetOverlayService9::class.java
             else -> PetOverlayService::class.java
         }
 
@@ -90,7 +100,7 @@ open class PetOverlayService : Service() {
                 ids.forEach { ctx.stopService(intent(ctx, it)) }
             }
             // 停掉所有服务类（含未在 activeInstances 中的）
-            for (id in 0 until MAX_INSTANCES) {
+            for (id in 0 until SLOT_COUNT) {
                 runCatching { ctx.stopService(intent(ctx, id)) }
             }
         }

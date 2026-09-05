@@ -376,6 +376,7 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
     val physics by cfg.flowBool("drag_physics", false).collectAsState(initial = false)
     val speed by cfg.flowDouble("playback_speed", PetConfig.DEFAULT_PLAYBACK_SPEED).collectAsState(initial = PetConfig.DEFAULT_PLAYBACK_SPEED)
     val gap by cfg.flowDouble("animation_gap_seconds", 0.0).collectAsState(initial = 0.0)
+    val maxInstances by cfg.flowInt("max_instances", 4).collectAsState(initial = 4)
     val moveProb by cfg.flowDouble("move_probability", 0.20).collectAsState(initial = 0.20)
     val moveMinPx by cfg.flowInt("move_min_px", 60).collectAsState(initial = 60)
     val moveMaxPx by cfg.flowInt("move_max_px", 240).collectAsState(initial = 240)
@@ -387,6 +388,32 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
         Section("动作与移动") {
             SwitchRow("自动移动", "桌宠会朝面向方向散步（概率与距离可调）", !noMove) { on ->
                 scope.launch { cfg.setNoMove(!on) }
+            }
+            // 多开上限（0 = 无限制；硬件槽位 10）
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text(
+                    "多开上限",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    "同时存在的最大小肥鱼数量（0 = 无限制，最多 ${com.dshpet.android.pet.PetOverlayService.SLOT_COUNT} 只）",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    listOf(1, 2, 3, 4, 6, 8, 10, 0).forEach { v ->
+                        androidx.compose.material3.FilterChip(
+                            selected = maxInstances == v,
+                            onClick = {
+                                scope.launch { cfg.setMaxInstances(v) }
+                                com.dshpet.android.pet.PetOverlayService.maxInstances = v
+                            },
+                            label = { Text(if (v == 0) "不限" else "$v") },
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
+                    }
+                }
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("移动概率", Modifier.width(90.dp), fontSize = 13.sp)
@@ -473,10 +500,10 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
                 Text("菜单大小", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(
                     value = menuScale.toFloat(), onValueChange = { scope.launch { cfg.setMenuScale(it.toDouble()) } },
-                    valueRange = 0.7f..1.4f,
+                    valueRange = 0.7f..1.4f, steps = 6,
                     modifier = Modifier.weight(1f),
                 )
-                Text("${menuScale}×", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text("${"%.1f".format(menuScale)}×", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("不透明度", Modifier.width(90.dp), fontSize = 13.sp)

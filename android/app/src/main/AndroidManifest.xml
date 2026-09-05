@@ -112,6 +112,66 @@
                 android:value="desktop_pet_overlay" />
         </service>
 
+        <service
+            android:name=".pet.PetOverlayService4"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+
+        <service
+            android:name=".pet.PetOverlayService5"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+
+        <service
+            android:name=".pet.PetOverlayService6"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+
+        <service
+            android:name=".pet.PetOverlayService7"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+
+        <service
+            android:name=".pet.PetOverlayService8"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+
+        <service
+            android:name=".pet.PetOverlayService9"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+
         <!-- 开机自启 -->
         <receiver
             android:name=".pet.BootReceiver"
