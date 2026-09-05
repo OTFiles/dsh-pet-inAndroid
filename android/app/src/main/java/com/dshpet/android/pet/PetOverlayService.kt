@@ -62,6 +62,7 @@ class PetOverlayService : Service() {
                 else ctx.startService(intent(ctx, instanceId))
             } catch (e: Exception) {
                 // 8.0+ 后台启动前台服务限制：忽略（用户需从设置页手动启动）
+                AppLog.log("SVC", "ensureRunning 失败(${if (persist) "前台" else "后台"}): ${e.javaClass.simpleName}: ${e.message}")
             }
         }
 
@@ -172,7 +173,12 @@ class PetOverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         instanceId = intent?.getIntExtra(EXTRA_INSTANCE, 0) ?: 0
-        AppLog.log("SVC", "onStartCommand instance=$instanceId action=${intent?.action}")
+        val t0 = android.os.SystemClock.elapsedRealtime()
+        AppLog.log(
+            "SVC",
+            "onStartCommand instance=$instanceId action=${intent?.action} startId=$startId " +
+                    "重启=${intent == null}(null intent=系统重建) container=${container != null}"
+        )
         synchronized(activeInstances) { activeInstances.add(instanceId) }
         if (intent?.action == "quit") {
             quit()
@@ -194,7 +200,15 @@ class PetOverlayService : Service() {
                 try {
                     initPet()
                 } catch (e: Throwable) {
-                    AppLog.log("INIT", "初始化失败: ${e.message}\n${android.util.Log.getStackTraceString(e)}")
+                    AppLog.log(
+                        "INIT",
+                        "初始化失败: ${e.javaClass.simpleName}: ${e.message}\n${android.util.Log.getStackTraceString(e)}"
+                    )
+                    val rt = Runtime.getRuntime()
+                    AppLog.log(
+                        "INIT",
+                        "失败时内存: 堆已用${(rt.totalMemory() - rt.freeMemory()) / 1048576}MB/上限${rt.maxMemory() / 1048576}MB"
+                    )
                     synchronized(initFailed) { initFailed.add(instanceId) }
                     showBubble("桌宠初始化失败：${e.message}")
                     stopSelf()
@@ -205,6 +219,10 @@ class PetOverlayService : Service() {
     }
 
     override fun onDestroy() {
+        AppLog.log(
+            "SVC",
+            "onDestroy instance=$instanceId（用户退出/服务被杀/初始化失败均会到这）"
+        )
         synchronized(activeInstances) { activeInstances.remove(instanceId) }
         scope.cancel()
         uiHandler.removeCallbacksAndMessages(null)
@@ -225,10 +243,15 @@ class PetOverlayService : Service() {
 
     // ================================================================ 初始化
     private suspend fun initPet() {
-        AppLog.log("SVC", "initPet start instance=$instanceId")
+        val t0 = android.os.SystemClock.elapsedRealtime()
+        fun mem(): String {
+            val rt = Runtime.getRuntime()
+            return "堆${(rt.totalMemory() - rt.freeMemory()) / 1048576}MB"
+        }
+        AppLog.log("SVC", "initPet start instance=$instanceId ${mem()}")
         stateStore = PetState(this, instanceId)
         catalog = PetCatalog.load(this)
-        AppLog.log("SVC", "catalog 加载 ${catalog.names.size} 段动画")
+        AppLog.log("SVC", "catalog 加载 ${catalog.names.size} 段动画 ${android.os.SystemClock.elapsedRealtime() - t0}ms ${mem()}")
         engine = PetEngine(
             catalog = catalog,
             play = { name -> playAnimation(name) },
@@ -274,6 +297,7 @@ class PetOverlayService : Service() {
             else (defaultY - offsetY).coerceIn(yr.first, yr.last),
         )
         syncEngineScreenBounds()
+        AppLog.log("SVC", "窗口与手势就绪 ${android.os.SystemClock.elapsedRealtime() - t0}ms")
 
         // 气泡
         bubble = SpeechBubble(this, engine, config)
@@ -304,7 +328,10 @@ class PetOverlayService : Service() {
         uiHandler.postDelayed(moveTicker, 33)
         scheduleSelfTalk()
         applyOpacity()
-        AppLog.log("SVC", "initPet 完成，窗口 ${engine.winX},${engine.winY} ${engine.winW}x${engine.winH}")
+        AppLog.log(
+            "SVC",
+            "initPet 完成 ${android.os.SystemClock.elapsedRealtime() - t0}ms，窗口 ${engine.winX},${engine.winY} ${engine.winW}x${engine.winH} ${mem()}"
+        )
     }
 
     // ================================================================ 自言自语

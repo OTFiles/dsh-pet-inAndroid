@@ -73,6 +73,10 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
                 override fun onRenderedFirstFrame() {
                     firstFrameRendered = true
                     com.dshpet.android.util.AppLog.log("VIDEO", "首帧已渲染: $currentName")
+                    val rt = Runtime.getRuntime()
+                    com.dshpet.android.util.AppLog.log(
+                        "MEM", "首帧时: 堆已用${(rt.totalMemory() - rt.freeMemory()) / 1048576}MB"
+                    )
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -100,7 +104,8 @@ class PetVideoView(context: Context) : GLSurfaceView(context) {
             com.dshpet.android.util.AppLog.log(
                 "GL",
                 "surface created: renderer=${GLES20.glGetString(GLES20.GL_RENDERER)} " +
-                        "version=${GLES20.glGetString(GLES20.GL_VERSION)} program=$program"
+                        "version=${GLES20.glGetString(GLES20.GL_VERSION)} program=$program " +
+                        "surface=${width}x${height}"
             )
             val ids = IntArray(1)
             GLES20.glGenTextures(1, ids, 0)

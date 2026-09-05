@@ -1,5 +1,6 @@
 package com.dshpet.android
 
+import android.app.ActivityManager
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -26,6 +27,7 @@ class PetApp : Application() {
         AppLog.init(this)
         installCrashHandler()
         AppLog.log("APP", "启动 v${BuildConfig.VERSION_NAME}")
+        logMemory("进程创建")
         createChannels()
         appScope.launch {
             val cfg = PetConfig.get(this@PetApp)
@@ -39,12 +41,49 @@ class PetApp : Application() {
         }
     }
 
+    /** 内存诊断：当前进程可用堆 + 系统低内存状态 */
+    private fun logMemory(tag: String) {
+        val rt = Runtime.getRuntime()
+        val usedMb = (rt.totalMemory() - rt.freeMemory()) / 1048576
+        val maxMb = rt.maxMemory() / 1048576
+        val am = getSystemService(ActivityManager::class.java)
+        val lowRam = am?.isLowRamDevice ?: false
+        val sysLow = try { am?.isLowMemory ?: false } catch (e: Throwable) { false }
+        AppLog.log(
+            "MEM",
+            "$tag: 堆已用 ${usedMb}MB / 上限 ${maxMb}MB, lowRamDevice=$lowRam, 系统低内存=$sysLow"
+        )
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // level>=TRIM_MEMORY_COMPLETE(80)/UI_HIDDEN(20) 前的各级都记录
+        AppLog.log("MEM", "onTrimMemory level=$level " +
+                when {
+                    level >= 80 -> "(COMPLETE: 进程随时可能被杀)"
+                    level >= 60 -> "(MODERATE)"
+                    level >= 40 -> "(BACKGROUND)"
+                    level >= 20 -> "(UI_HIDDEN)"
+                    level >= 15 -> "(TRIM_MEMORY_RUNNING_CRITICAL: 后台内存紧张)"
+                    else -> "(RUNNING_LOW/LOW)"
+                })
+        logMemory("onTrimMemory")
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        AppLog.log("MEM", "onLowMemory: 系统整体内存耗尽，进程濒临被杀")
+        logMemory("onLowMemory")
+    }
+
     private fun installCrashHandler() {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val rt = Runtime.getRuntime()
             AppLog.log(
                 "CRASH",
-                "线程=${thread.name}\n${Log.getStackTraceString(throwable)}",
+                "线程=${thread.name}\n${Log.getStackTraceString(throwable)}\n" +
+                        "[内存快照] 堆已用${(rt.totalMemory() - rt.freeMemory()) / 1048576}MB/上限${rt.maxMemory() / 1048576}MB",
             )
             previous?.uncaughtException(thread, throwable)
         }
