@@ -11,8 +11,8 @@ android {
         applicationId = "com.dshpet.android"
         minSdk = 28
         targetSdk = 34
-        versionCode = 405
-        versionName = "4.0.5"
+        versionCode = 406
+        versionName = "4.0.6"
     }
 
     signingConfigs {
