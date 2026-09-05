@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dshpet.android.chat.SseClient
 import com.dshpet.android.data.PetConfig
+import com.dshpet.android.data.applyHideRecentsPolicy
 import com.dshpet.android.pet.Balance
 import com.dshpet.android.pet.PetOverlayService
 import com.dshpet.android.pet.Updater
@@ -103,7 +104,9 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         fun startIntent(ctx: Context): Intent =
-            Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            Intent(ctx, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .applyHideRecentsPolicy()
 
         fun start(ctx: Context) {
             ctx.startActivity(startIntent(ctx))
@@ -310,11 +313,28 @@ private fun GeneralTab(ctx: android.content.Context, cfg: PetConfig, scope: kotl
             }
             SwitchRow(
                 "隐藏后台",
-                "启用后本应用不显示在最近任务列表（android:excludeFromRecents）",
+                "应用不显示在最近任务列表；切换后设置页会自动重启以立即生效",
                 hideRecents,
             ) { on ->
-                scope.launch { cfg.setHideFromRecents(on) }
-                MainActivity.applyRecentsAlias(ctx, on)
+                scope.launch {
+                    cfg.setHideFromRecents(on)
+                    PetConfig.hideRecentsCached = on
+                    MainActivity.applyRecentsAlias(ctx, on)
+                    // 任务在最近任务中的可见性创建时已固定，必须重建任务：
+                    // 关闭旧任务 → 以正确标志重启设置页
+                    val act = ctx as? android.app.Activity
+                    if (act != null && !act.isFinishing) {
+                        act.finishAndRemoveTask()
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            runCatching {
+                                val i = Intent(act, MainActivity::class.java)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                if (on) i.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                                act.applicationContext.startActivity(i)
+                            }
+                        }, 350)
+                    }
+                }
             }
             SwitchRow(
                 "忽略电池优化",

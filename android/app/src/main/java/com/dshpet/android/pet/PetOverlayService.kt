@@ -24,6 +24,7 @@ import com.dshpet.android.MainActivity
 import com.dshpet.android.R
 import com.dshpet.android.chat.ChatActivity
 import com.dshpet.android.data.PetConfig
+import com.dshpet.android.data.applyHideRecentsPolicy
 import com.dshpet.android.data.PetState
 import com.dshpet.android.util.AppLog
 import kotlinx.coroutines.CoroutineScope
@@ -682,7 +683,11 @@ class PetOverlayService : Service() {
     }
 
     fun openChat() {
-        startActivity(Intent(this, ChatActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        startActivity(
+            Intent(this, ChatActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .applyHideRecentsPolicy()
+        )
     }
 
     fun showBalanceInBubble() {
@@ -781,7 +786,10 @@ class PetOverlayService : Service() {
             this, 0, MainActivity.startIntent(this), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val openChat = PendingIntent.getActivity(
-            this, 1, Intent(this, ChatActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            this, 1, Intent(this, ChatActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .applyHideRecentsPolicy(),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val quit = PendingIntent.getService(
             this, 2, intent(this, instanceId).setAction("quit"), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,

@@ -32,6 +32,14 @@ class PetConfig(private val ctx: Context) {
     companion object {
         fun get(ctx: Context) = PetConfig(ctx)
 
+        /**
+         * "隐藏后台"进程级缓存：通知/悬浮窗菜单等非挂起上下文里
+         * 启动 Activity 时需要同步读取（DataStore 是 suspend 的）。
+         * PetApp 启动时与设置切换时同步。
+         */
+        @Volatile
+        var hideRecentsCached = false
+
         // ---- 缩放档位（相对 640 宽，与原 SCALE_STEPS 一致）----
         val SCALE_STEPS = listOf(0.5, 0.72, 0.85, 1.0)
 
@@ -284,5 +292,13 @@ class PetState(ctx: Context, instanceId: Int) {
                     ctx.preferencesDataStoreFile("pet_state_$id")
                 }
             }
+    }
+}
+
+
+/** 隐藏后台开启时，给新任务的 Intent 加排除标志（最近任务列表不显示） */
+fun android.content.Intent.applyHideRecentsPolicy(): android.content.Intent = apply {
+    if (PetConfig.hideRecentsCached) {
+        addFlags(android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
     }
 }
