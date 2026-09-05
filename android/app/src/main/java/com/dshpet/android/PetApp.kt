@@ -48,10 +48,13 @@ class PetApp : Application() {
         val maxMb = rt.maxMemory() / 1048576
         val am = getSystemService(ActivityManager::class.java)
         val lowRam = am?.isLowRamDevice ?: false
-        val sysLow = try { am?.isLowMemory ?: false } catch (e: Throwable) { false }
+        val mi = android.app.ActivityManager.MemoryInfo()
+        am?.getMemoryInfo(mi)
+        val sysLow = mi.lowMemory
+        val availMb = mi.availMem / 1048576
         AppLog.log(
             "MEM",
-            "$tag: 堆已用 ${usedMb}MB / 上限 ${maxMb}MB, lowRamDevice=$lowRam, 系统低内存=$sysLow"
+            "$tag: 堆已用 ${usedMb}MB / 上限 ${maxMb}MB, lowRamDevice=$lowRam, 系统低内存=$sysLow, 系统可用内存≈${availMb}MB"
         )
     }
 
