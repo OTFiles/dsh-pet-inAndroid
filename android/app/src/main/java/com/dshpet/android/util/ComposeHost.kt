@@ -28,18 +28,19 @@ internal object ComposeHostOwner : LifecycleOwner, SavedStateRegistryOwner {
     private val lifecycleRegistry = LifecycleRegistry(this).apply {
         currentState = Lifecycle.State.RESUMED
     }
-    private val savedStateRegistryController = SavedStateRegistryController.create(this)
 
-    init {
-        // 非 Activity 组件：必须显式 attach 才允许消费恢复状态
-        // （否则 rememberSaveable 触发 "consumeRestoredStateForKey only
-        // after super.onCreate" 崩溃）
-        savedStateRegistryController.performAttach()
+    // SavedStateRegistryController.create 必须发生在"构造期"、performAttach
+    // 紧随其后 —— 二者都放在同一个懒初始化块里保证顺序与阶段正确
+    //（object 的 <clinit> 中 create+attach 会触发
+    // "Restarter must be created only during owner's initialization stage"）。
+    private val attached: SavedStateRegistry by lazy {
+        SavedStateRegistryController.create(this).apply {
+            performAttach()
+        }.savedStateRegistry
     }
 
     override val lifecycle: Lifecycle get() = lifecycleRegistry
-    override val savedStateRegistry: SavedStateRegistry
-        get() = savedStateRegistryController.savedStateRegistry
+    override val savedStateRegistry: SavedStateRegistry get() = attached
 }
 
 /** 悬浮窗 ComposeView addView 前必须调用：把宿主 owners 挂到 ViewTree */
