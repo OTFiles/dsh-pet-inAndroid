@@ -83,6 +83,35 @@
                 android:value="desktop_pet_overlay" />
         </service>
 
+        <!-- 多开实例载体（Android 同一 Service 类仅一个对象） -->
+        <service
+            android:name=".pet.PetOverlayService1"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+        <service
+            android:name=".pet.PetOverlayService2"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+        <service
+            android:name=".pet.PetOverlayService3"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:targetApi="34">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="desktop_pet_overlay" />
+        </service>
+
         <!-- 开机自启 -->
         <receiver
             android:name=".pet.BootReceiver"

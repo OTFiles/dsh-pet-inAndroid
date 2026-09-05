@@ -10,7 +10,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +31,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
@@ -133,6 +137,15 @@ class PetMenu(
         view = null
     }
 
+    /** 悬浮窗整体拖动（标题栏手势回调） */
+    private fun onWindowDrag(dx: Float, dy: Float) {
+        val p = params ?: return
+        val v = view ?: return
+        p.x += dx.toInt()
+        p.y += dy.toInt()
+        runCatching { wm.updateViewLayout(v, p) }
+    }
+
     private fun screenPx(): Pair<Int, Int> {
         val bounds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             wm.currentWindowMetrics.bounds
@@ -184,6 +197,41 @@ class PetMenu(
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
+                // 标题栏：整条可拖动窗口，右侧直接关闭
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                onWindowDrag(dragAmount.x, dragAmount.y)
+                            }
+                        }
+                        .padding(start = 12.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.DragIndicator, contentDescription = "拖动",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(18.dp),
+                    )
+                    Text(
+                        "小肥鱼",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 6.dp),
+                    )
+                    IconButton(onClick = { dismiss() }, modifier = Modifier.height(28.dp)) {
+                        Icon(
+                            Icons.Filled.Close, contentDescription = "关闭",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(16.dp),
+                        )
+                    }
+                }
                 if (animHubOpen) {
                     AnimHub(cfg, onBack = { animHubOpen = false }) { name -> run { engine.switch(name) } }
                 } else if (quickOpen) {

@@ -46,15 +46,33 @@ import kotlin.math.roundToInt
  * - 动画链、位置持久化（按屏幕比例换算 dp）、多实例隔离；
  * - 前台通知提供：显示/隐藏、AI 对话、设置、退出。
  */
-class PetOverlayService : Service() {
+open class PetOverlayService : Service() {
+
+    /** 本服务类负责的实例号（系统重启 null intent 时的默认值） */
+    protected open val defaultInstanceId: Int get() = 0
 
     companion object {
         const val CHANNEL_ID = "pet"
         const val EXTRA_INSTANCE = "instance_id"
         private const val TAG = "PetOverlay"
 
+        /** 最多同时 4 只（id 0..3），低内存设备保护 */
+        const val MAX_INSTANCES = 4
+
+        /** 实例号 → 服务类（Android 同一 Service 类只有一个对象，
+         *  多开必须用不同服务类隔离窗口/引擎状态） */
+        fun serviceClassFor(id: Int): Class<*> = when (id) {
+            1 -> PetOverlayService1::class.java
+            2 -> PetOverlayService2::class.java
+            3 -> PetOverlayService3::class.java
+            else -> PetOverlayService::class.java
+        }
+
         fun intent(ctx: Context, instanceId: Int = 0): Intent =
-            Intent(ctx, PetOverlayService::class.java).putExtra(EXTRA_INSTANCE, instanceId)
+            Intent(ctx, serviceClassFor(instanceId)).putExtra(EXTRA_INSTANCE, instanceId)
+
+        /** 当前活跃实例号（含 0） */
+        fun activeInstanceIds(): List<Int> = synchronized(activeInstances) { activeInstances.toList() }
 
         fun ensureRunning(ctx: Context, instanceId: Int = 0, persist: Boolean = true) {
             try {
@@ -70,7 +88,10 @@ class PetOverlayService : Service() {
             synchronized(activeInstances) {
                 val ids = activeInstances.toList()
                 ids.forEach { ctx.stopService(intent(ctx, it)) }
-                ctx.stopService(intent(ctx, 0))
+            }
+            // 停掉所有服务类（含未在 activeInstances 中的）
+            for (id in 0 until MAX_INSTANCES) {
+                runCatching { ctx.stopService(intent(ctx, id)) }
             }
         }
 
@@ -172,7 +193,8 @@ class PetOverlayService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        instanceId = intent?.getIntExtra(EXTRA_INSTANCE, 0) ?: 0
+        val extraId = intent?.getIntExtra(EXTRA_INSTANCE, -1) ?: -1
+        instanceId = if (extraId >= 0) extraId else defaultInstanceId
         val t0 = android.os.SystemClock.elapsedRealtime()
         AppLog.log(
             "SVC",
@@ -230,12 +252,15 @@ class PetOverlayService : Service() {
         savePosition()
         removeMenu()
         bubble?.dismiss()
+        dismissChat()
         easterEggs.forEach { it.dismiss() }
         easterEggs.clear()
         container?.let { runCatching { wm.removeView(it) } }
         runCatching { videoView.release() }
         soundPool?.release()
-        CoroutineScope(Dispatchers.Main).launch { config.setPetRunning(false) }
+        CoroutineScope(Dispatchers.Main).launch {
+            if (activeInstanceIds().isEmpty()) config.setPetRunning(false)
+        }
         super.onDestroy()
     }
 
@@ -712,7 +737,13 @@ class PetOverlayService : Service() {
     // ================================================================ 其他功能
     fun spawnPet() {
         scope.launch {
-            val id = config.nextInstanceId()
+            val active = activeInstanceIds()
+            if (active.size >= MAX_INSTANCES) {
+                showBubble("最多同时 ${MAX_INSTANCES} 只小肥鱼～", 3000)
+                return@launch
+            }
+            // 复用最小空闲 id（1..3）
+            val id = (1 until MAX_INSTANCES).firstOrNull { it !in active } ?: return@launch
             PetOverlayService.ensureRunning(this@PetOverlayService, id)
             showBubble("一只新的小肥鱼诞生啦！", 4000)
         }
@@ -722,12 +753,17 @@ class PetOverlayService : Service() {
         MainActivity.start(this)
     }
 
+    // 悬浮 AI 对话窗口（长按菜单入口）
+    private var chatWindow: PetChatWindow? = null
+
     fun openChat() {
-        startActivity(
-            Intent(this, ChatActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .applyHideRecentsPolicy()
-        )
+        if (chatWindow == null) chatWindow = PetChatWindow(this)
+        chatWindow?.show()
+    }
+
+    private fun dismissChat() {
+        chatWindow?.dismiss()
+        chatWindow = null
     }
 
     fun showBalanceInBubble() {
@@ -785,7 +821,7 @@ class PetOverlayService : Service() {
     }
 
     fun quit() {
-        stopAll(this)
+        // 仅退出本实例（其它小肥鱼不受影响）
         stopSelf()
     }
 
