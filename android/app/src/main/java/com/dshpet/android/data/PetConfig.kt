@@ -56,6 +56,10 @@ class PetConfig(private val ctx: Context) {
         private val K_DRAG_PHYSICS = booleanPreferencesKey("drag_physics")
         private val K_PET_OPACITY = intPreferencesKey("pet_opacity")
         private val K_PLAYBACK_SPEED = doublePreferencesKey("playback_speed")
+        private val K_MOVE_PROBABILITY = doublePreferencesKey("move_probability")   // 移动概率 0..1
+        private val K_MOVE_MIN_PX = intPreferencesKey("move_min_px")                // 散步最小距离
+        private val K_MOVE_MAX_PX = intPreferencesKey("move_max_px")                // 散步最大距离
+        private val K_MENU_SCALE = doublePreferencesKey("menu_scale")               // 菜单缩放
         private val K_ANIM_GAP_SEC = doublePreferencesKey("animation_gap_seconds")
         private val K_CLICK_SOUND = booleanPreferencesKey("click_sound_enabled")
         private val K_CLICK_SHOW_BALANCE = booleanPreferencesKey("click_show_balance")
@@ -179,6 +183,17 @@ class PetConfig(private val ctx: Context) {
     suspend fun setDragPhysics(v: Boolean) = set("drag_physics", v)
     suspend fun setPetOpacity(v: Int) = set("pet_opacity", v)
     suspend fun setPlaybackSpeed(v: Double) = set("playback_speed", v)
+    suspend fun moveProbability() = read(K_MOVE_PROBABILITY, 0.20).coerceIn(0.0, 0.9)
+    suspend fun setMoveProbability(v: Double) { set("move_probability", v.coerceIn(0.0, 0.9)) }
+    suspend fun moveMinPx() = read(K_MOVE_MIN_PX, 60).coerceIn(10, 600)
+    suspend fun moveMaxPx() = read(K_MOVE_MAX_PX, 240).coerceIn(30, 1200)
+    suspend fun setMoveRange(minPx: Int, maxPx: Int) {
+        val lo = minPx.coerceIn(10, 600)
+        val hi = maxPx.coerceIn(lo, 1200)
+        set("move_min_px", lo); set("move_max_px", hi)
+    }
+    suspend fun menuScale() = read(K_MENU_SCALE, 1.0).coerceIn(0.7, 1.4)
+    suspend fun setMenuScale(v: Double) = set("menu_scale", v.coerceIn(0.7, 1.4))
     suspend fun setAnimGap(v: Double) = set("animation_gap_seconds", v)
     suspend fun setClickSound(v: Boolean) = set("click_sound_enabled", v)
     suspend fun setClickShowBalance(v: Boolean) = set("click_show_balance", v)

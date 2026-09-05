@@ -283,6 +283,12 @@ class PetOverlayService : Service() {
         // 播放速度（默认 1.5x）
         curSpeed = config.playbackSpeed()
 
+        // 行为参数：移动概率/散步距离（设置可调）
+        val moveProb = config.moveProbability()
+        engine.pActs = (1.0 - moveProb).coerceIn(0.1, 0.95)
+        engine.moveMinPx = config.moveMinPx()
+        engine.moveMaxPx = config.moveMaxPx()
+
         // 自言自语素材缓存（供非协程回调使用）
         curSelfTalkTexts = config.selfTalkTexts().toList()
         curSelfTalkDurationMs = (config.selfTalkDuration() * 1000).toLong()
@@ -602,6 +608,13 @@ class PetOverlayService : Service() {
         }
         watch(c.flowInt("pet_opacity", 100)) { v -> curOpacity = (v as Int).coerceIn(10, 100); applyOpacity() }
         watch(c.flowDouble("playback_speed", PetConfig.DEFAULT_PLAYBACK_SPEED)) { v -> curSpeed = v as Double; videoView.setPlaybackSpeed(curSpeed.toFloat()) }
+        watch(c.flowDouble("move_probability", 0.20)) { v ->
+            engine.pActs = (1.0 - (v as Double)).coerceIn(0.1, 0.95)
+        }
+        watch(c.flowInt("move_min_px", 60)) { v -> engine.moveMinPx = v as Int }
+        watch(c.flowInt("move_max_px", 240)) { v ->
+            engine.moveMaxPx = (v as Int).coerceAtLeast(engine.moveMinPx)
+        }
         watch(c.flowBool("no_move", false)) { v -> curNoMove = v as Boolean; engine.noMove = curNoMove }
         watch(c.flowBool("lock_position", false)) { v -> curLock = v as Boolean }
         watch(c.flowBool("shift_drag", false)) { v -> curShiftDrag = v as Boolean }

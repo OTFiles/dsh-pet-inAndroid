@@ -76,6 +76,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import com.dshpet.android.chat.SseClient
 import com.dshpet.android.data.PetConfig
 import com.dshpet.android.data.applyHideRecentsPolicy
@@ -381,8 +382,35 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
         Section("动作与移动") {
-            SwitchRow("自动移动", "桌宠会朝面向方向散步（20% 概率）", !noMove) { on ->
+            SwitchRow("自动移动", "桌宠会朝面向方向散步（概率与距离可调）", !noMove) { on ->
                 scope.launch { cfg.setNoMove(!on) }
+            }
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("移动概率", Modifier.width(90.dp), fontSize = 13.sp)
+                Slider(
+                    value = moveProb.toFloat(), onValueChange = { scope.launch { cfg.setMoveProbability(it.toDouble()) } },
+                    valueRange = 0f..0.9f,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("${(moveProb * 100).roundToInt()}%", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            }
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("散步距离", Modifier.width(90.dp), fontSize = 13.sp)
+                Slider(
+                    value = moveMinPx.toFloat(), onValueChange = { scope.launch { cfg.setMoveRange(it.toInt(), maxOf(it.toInt(), moveMaxPx)) } },
+                    valueRange = 10f..600f,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("${moveMinPx}px", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            }
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("最大距离", Modifier.width(90.dp), fontSize = 13.sp)
+                Slider(
+                    value = moveMaxPx.toFloat(), onValueChange = { scope.launch { cfg.setMoveRange(minOf(moveMinPx, it.toInt()), it.toInt()) } },
+                    valueRange = 30f..1200f,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("${moveMaxPx}px", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             SwitchRow("锁定位置", "桌宠固定不动，点击互动仍有效", lock) { on -> scope.launch { cfg.setLockPosition(on) } }
             SwitchRow("仅长按可拖动", "需先长按桌宠才能拖动（触摸版 SHIFT 拖拽）", shiftDrag) { on ->
@@ -436,6 +464,15 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
                 listOf(0.5 to "小", 0.72 to "中", 0.85 to "大", 1.0 to "特大").forEach { (v, label) ->
                     FilterChip(selected = scale == v, onClick = { scope.launch { cfg.setScale(v) } }, label = { Text(label) })
                 }
+            }
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("菜单大小", Modifier.width(90.dp), fontSize = 13.sp)
+                Slider(
+                    value = menuScale.toFloat(), onValueChange = { scope.launch { cfg.setMenuScale(it.toDouble()) } },
+                    valueRange = 0.7f..1.4f,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("${menuScale}×", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("不透明度", Modifier.width(90.dp), fontSize = 13.sp)

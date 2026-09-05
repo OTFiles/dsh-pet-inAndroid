@@ -64,8 +64,11 @@ class EasterEggPopup private constructor(
             @Suppress("DEPRECATION")
             android.graphics.Rect(0, 0, ctx.resources.displayMetrics.widthPixels, ctx.resources.displayMetrics.heightPixels)
         }
-        lp.x = Random.nextInt(0, (bounds.width() - lp.width).coerceAtLeast(0))
-        lp.y = Random.nextInt(0, (bounds.height() - lp.height).coerceAtLeast(0))
+        // 防护：宽/高 >= 屏幕时区间为空 → Random.nextInt 崩溃
+        val rangeX = (bounds.width() - lp.width).coerceAtLeast(0)
+        val rangeY = (bounds.height() - lp.height).coerceAtLeast(0)
+        lp.x = if (rangeX > 0) Random.nextInt(0, rangeX) else 0
+        lp.y = if (rangeY > 0) Random.nextInt(0, rangeY) else 0
     }
 
     fun show() {
@@ -86,9 +89,17 @@ class EasterEggPopup private constructor(
         }
 
         fun showRandom(ctx: Context) {
-            val imgs = availableImages(ctx)
-            if (imgs.isEmpty()) return
-            EasterEggPopup(ctx, imgs[Random.nextInt(imgs.size)]).show()
+            // 彩蛋是装饰功能：任何异常都只记日志，绝不带崩进程
+            try {
+                val imgs = availableImages(ctx)
+                if (imgs.isEmpty()) {
+                    com.dshpet.android.util.AppLog.log("EASTER", "彩蛋图片池为空，跳过")
+                    return
+                }
+                EasterEggPopup(ctx, imgs[Random.nextInt(imgs.size)]).show()
+            } catch (e: Throwable) {
+                com.dshpet.android.util.AppLog.log("EASTER", "彩蛋弹窗失败: ${e.message}")
+            }
         }
     }
 }

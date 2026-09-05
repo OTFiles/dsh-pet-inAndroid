@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -147,6 +148,9 @@ class PetMenu(
     private fun MenuRoot() {
         val scope = rememberCoroutineScope()
         val cfg = PetConfig.get(ctx)
+        // 菜单缩放（设置-外观可调 0.7x..1.4x，紧凑布局默认即小菜单）
+        val menuScale by cfg.flowDouble("menu_scale", 1.0).collectAsState(initial = 1.0)
+        val scaleF = menuScale.toFloat()
         var speedOpen by remember { mutableStateOf(false) }
         var sizeOpen by remember { mutableStateOf(false) }
         var animHubOpen by remember { mutableStateOf(false) }
@@ -163,17 +167,22 @@ class PetMenu(
 
         Surface(
             modifier = Modifier
-                .width(248.dp)
+                .width((236 * scaleF).dp)
+                .graphicsLayer {
+                    scaleX = scaleF; scaleY = scaleF
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
+                }
                 .mdBlur(blurOn, radius = 22),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             color = if (blurOn) Color(0xE6FFFFFF) else MaterialTheme.colorScheme.surface,
-            shadowElevation = 12.dp,
+            shadowElevation = 10.dp,
             tonalElevation = 2.dp,
         ) {
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .padding(vertical = 6.dp),
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 if (animHubOpen) {
                     AnimHub(cfg, onBack = { animHubOpen = false }) { name -> run { engine.switch(name) } }
@@ -232,7 +241,7 @@ class PetMenu(
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 2.dp),
+            modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 1.dp),
         )
     }
 
@@ -248,24 +257,24 @@ class PetMenu(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 11.dp),
+                .padding(horizontal = 14.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 icon, contentDescription = null,
                 tint = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.width(20.dp),
+                modifier = Modifier.width(18.dp),
             )
             Text(
                 text = title,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 color = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
-                    .padding(start = 14.dp)
+                    .padding(start = 12.dp)
                     .weight(1f),
             )
             badge?.let {
-                Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(it, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -276,12 +285,12 @@ class PetMenu(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onToggle)
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+                .padding(horizontal = 14.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(20.dp))
-            Text(title, fontSize = 14.sp, modifier = Modifier.padding(start = 14.dp).weight(1f))
-            Switch(checked = checked, onCheckedChange = { onToggle() }, modifier = Modifier.height(28.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(18.dp))
+            Text(title, fontSize = 13.sp, modifier = Modifier.padding(start = 12.dp).weight(1f))
+            Switch(checked = checked, onCheckedChange = { onToggle() }, modifier = Modifier.height(24.dp))
         }
     }
 
@@ -293,9 +302,9 @@ class PetMenu(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onPick(v) }
-                    .padding(start = 40.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    .padding(start = 36.dp, end = 14.dp, top = 5.dp, bottom = 5.dp),
             ) {
-                Text("${v}×", fontSize = 13.sp)
+                Text("${v}×", fontSize = 12.sp)
                 if (service.curSpeed == v) {
                     Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.width(16.dp))
                 }
@@ -311,9 +320,9 @@ class PetMenu(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onPick(v) }
-                    .padding(start = 40.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    .padding(start = 36.dp, end = 14.dp, top = 5.dp, bottom = 5.dp),
             ) {
-                Text(sizeLabel(v), fontSize = 13.sp)
+                Text(sizeLabel(v), fontSize = 12.sp)
                 if (engine.winW == (640.0 * v).toInt()) {
                     Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.width(16.dp))
                 }

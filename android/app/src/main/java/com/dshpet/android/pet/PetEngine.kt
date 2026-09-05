@@ -64,11 +64,22 @@ class PetEngine(
         winH = h
     }
 
-    /** 屏幕可用区域（dp） */
+    /** 屏幕可用区域（px，含溢出边界） */
     var screenLeft = 0
     var screenTop = 0
     var screenRight = 0
     var screenBottom = 0
+
+    // ---- 可调行为参数（默认=桌面端原值）----
+    /** 待机概率（0..0.9） */
+    @Volatile var pIdle = P_IDLE
+    /** 转身概率上界 */
+    @Volatile var pTurn = P_TURN
+    /** 动作概率上界（移动概率 = 1 - pActs） */
+    @Volatile var pActs = P_ACTS
+    /** 单次散步最小/最大距离（px，按 winW/640 等比缩放） */
+    @Volatile var moveMinPx = MOVE_MIN_PX
+    @Volatile var moveMaxPx = MOVE_MAX_PX
 
     private var dragging = false
     private var gapActive = false
@@ -134,18 +145,19 @@ class PetEngine(
             return
         }
         val roll = random.nextDouble()
+        // 概率可调（默认 30%/40%/80%，移动=1-80%=20%）
         when {
-            roll < P_IDLE -> {
+            roll < pIdle -> {
                 if (idles.isNotEmpty()) switch(idles.pick(exclude = anim))
                 else switch(acts.pick(exclude = anim))
             }
-            roll < P_TURN -> {
+            roll < pTurn -> {
                 if (turns.isNotEmpty()) switch(turns.pick(exclude = anim))
                 else switch(acts.pick(exclude = anim))
             }
-            roll < P_ACTS -> switch(acts.pick(exclude = anim))
+            roll < pActs -> switch(acts.pick(exclude = anim))
             else -> {
-                // 20% 移动（不移动模式或空间不足回退动作）
+                // 移动（不移动模式或空间不足回退动作）
                 if (noMove || !tryMove()) switch(acts.pick(exclude = anim))
             }
         }
@@ -181,9 +193,10 @@ class PetEngine(
         if (moves.isEmpty()) return false
         val dirSign = if (facing == "right") 1 else -1
         val cx = winX + winW / 2.0
-        // 移动距离/边距按窗口宽度等比缩放（桌面 640 宽为基准）
+        // 移动距离/边距按窗口宽度等比缩放（桌面 640 宽为基准）；
+        // 距离范围由 moveMinPx/moveMaxPx 控制（设置可调）
         val distScale = winW / 640.0
-        val distance = random.nextInt(MOVE_MIN_PX, MOVE_MAX_PX + 1) * distScale
+        val distance = random.nextInt(moveMinPx, moveMaxPx + 1) * distScale
         val targetCx = cx + dirSign * distance
         val halfW = winW / 2.0
         val margin = (MOVE_MARGIN * distScale).toInt()
