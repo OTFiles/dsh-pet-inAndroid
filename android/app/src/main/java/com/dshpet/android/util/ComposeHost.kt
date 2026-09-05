@@ -25,22 +25,22 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
  * ViewTreeLifecycleOwner / ViewTreeSavedStateRegistryOwner。
  */
 internal object ComposeHostOwner : LifecycleOwner, SavedStateRegistryOwner {
-    private val lifecycleRegistry = LifecycleRegistry(this).apply {
-        currentState = Lifecycle.State.RESUMED
-    }
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val controller = SavedStateRegistryController.create(this)
 
-    // SavedStateRegistryController.create 必须发生在"构造期"、performAttach
-    // 紧随其后 —— 二者都放在同一个懒初始化块里保证顺序与阶段正确
-    //（object 的 <clinit> 中 create+attach 会触发
-    // "Restarter must be created only during owner's initialization stage"）。
-    private val attached: SavedStateRegistry by lazy {
-        SavedStateRegistryController.create(this).apply {
-            performAttach()
-        }.savedStateRegistry
+    init {
+        // SavedStateRegistry 的官方时序（ComponentActivity 同款）：
+        // 1) performAttach 必须在 Lifecycle==INITIALIZED 时调用（内部校验）
+        // 2) performRestore(null) 结束恢复阶段 —— 此后 consumeRestoredStateForKey
+        //    才可用（Compose 组合必需）
+        // 3) 然后才把 Lifecycle 推到 RESUMED
+        controller.performAttach()
+        controller.performRestore(null)
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
 
     override val lifecycle: Lifecycle get() = lifecycleRegistry
-    override val savedStateRegistry: SavedStateRegistry get() = attached
+    override val savedStateRegistry: SavedStateRegistry get() = controller.savedStateRegistry
 }
 
 /** 悬浮窗 ComposeView addView 前必须调用：把宿主 owners 挂到 ViewTree */
