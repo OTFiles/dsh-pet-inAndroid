@@ -31,7 +31,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -159,7 +158,7 @@ class PetChatWindow(private val ctx: Context) {
             ) {
                 Column {
                     ChatHeader()
-                    MessageList()
+                    MessageList(Modifier.weight(1f))
                     InputBar()
                 }
             }
@@ -189,7 +188,7 @@ class PetChatWindow(private val ctx: Context) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        Icons.Filled.DragIndicator, contentDescription = "拖动",
+                        Icons.Filled.Menu, contentDescription = "拖动",
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(20.dp),
                     )
@@ -254,7 +253,7 @@ class PetChatWindow(private val ctx: Context) {
     }
 
     @Composable
-    private fun MessageList() {
+    private fun MessageList(modifier: Modifier) {
         val current by vm.current.collectAsState()
         val streaming by vm.streaming.collectAsState()
         val streamText by vm.streamText.collectAsState()
@@ -263,7 +262,7 @@ class PetChatWindow(private val ctx: Context) {
         LaunchedEffect(messages.size) {
             if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
         }
-        Box(Modifier.weight(1f)) {
+        Box(modifier) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),

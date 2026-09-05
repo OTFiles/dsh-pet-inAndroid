@@ -31,7 +31,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
@@ -211,7 +210,7 @@ class PetMenu(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        Icons.Filled.DragIndicator, contentDescription = "拖动",
+                        Icons.Filled.Menu, contentDescription = "拖动",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.width(18.dp),
                     )
