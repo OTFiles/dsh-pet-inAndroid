@@ -63,6 +63,10 @@ open class PetOverlayService : Service() {
         @Volatile
         var maxInstances: Int = 4
 
+        /** 桌宠可见性（灵动岛单击切换） */
+        @Volatile
+        var petHidden = false
+
         /** 实例号 → 服务类（Android 同一 Service 类只有一个对象，
          *  多开必须用不同服务类隔离窗口/引擎状态） */
         fun serviceClassFor(id: Int): Class<*> = when (id) {
@@ -145,6 +149,7 @@ open class PetOverlayService : Service() {
     internal var curLock = false
     private var curShiftDrag = false
     internal var curPhysics = false
+    internal var curCollision = true
     private var curGap = 0.0
     private var curSelfTalk = false
     private var curSelfTalkTexts: List<String> = emptyList()
@@ -212,9 +217,11 @@ open class PetOverlayService : Service() {
                     "重启=${intent == null}(null intent=系统重建) container=${container != null}"
         )
         synchronized(activeInstances) { activeInstances.add(instanceId) }
-        if (intent?.action == "quit") {
-            quit()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            "quit" -> { quit(); return START_NOT_STICKY }
+            "hide" -> { setHidden(true); return START_NOT_STICKY }
+            "show" -> { setHidden(false); return START_NOT_STICKY }
+            "toggle_island" -> { toggleIsland(); return START_NOT_STICKY }
         }
         if (!Settings.canDrawOverlays(this)) {
             stopSelf()
@@ -262,6 +269,10 @@ open class PetOverlayService : Service() {
         savePosition()
         removeMenu()
         bubble?.dismiss()
+        stopIsland()
+        stopQuickChat()
+        collisionMember?.let { CollisionHub.unregister(it.id) }
+        collisionMember = null
         stopAgentBus()
         dismissChat()
         easterEggs.forEach { it.dismiss() }
@@ -343,6 +354,14 @@ open class PetOverlayService : Service() {
         // 播放速度（默认 1.5x）
         curSpeed = config.playbackSpeed()
 
+        // 碰撞物理（默认开）
+        curCollision = config.collisionEnabled()
+        // 音效音量（上游 v4.0.5：0-100%）
+        curSoundVolume = config.soundVolume() / 100f
+        // 点击台词绑定（上游 v4.1.0）
+        curClickTalk = config.clickTalk()
+        curThrowStrength = config.throwStrength()
+
         // 行为参数：移动概率/散步距离（设置可调）
         val moveProb = config.moveProbability()
         engine.pActs = (1.0 - moveProb).coerceIn(0.1, 0.95)
@@ -365,6 +384,21 @@ open class PetOverlayService : Service() {
 
         // Agent 联动插件总线（上游统一事件协议；默认关，设置开启）
         if (config.agentLinkEnabled()) startAgentBus()
+
+        // 灵动岛（设置开启则随主实例启动）
+        if (instanceId == 0 && config.islandEnabled()) {
+            island = DynamicIsland(this).also { it.show() }
+        }
+
+        // 多开碰撞物理（上游"鱼塘碰碰车"；默认开）
+        collisionMember = CollisionHub.Member(
+            id = instanceId,
+            x = engine.winX.toDouble(), y = engine.winY.toDouble(),
+            w = engine.winW, h = engine.winH,
+        ).also {
+            CollisionHub.setEnabled(curCollision)
+            CollisionHub.register(it)
+        }
         scheduleSelfTalk()
         applyOpacity()
         AppLog.log(
@@ -373,8 +407,67 @@ open class PetOverlayService : Service() {
         )
     }
 
+    private var collisionMember: CollisionHub.Member? = null
+    private var island: DynamicIsland? = null
+    private var quickChat: QuickChat? = null
+
+    /** 双击间隔（毫秒）内二连击 → 快速对话 */
+    private var lastTapMs = 0L
+
+    // ---- 弹弓弹射（上游 PR#33）----
+    private var slingshotAiming = false
+    private var slingshotAnchorX = 0f
+    private var slingshotAnchorY = 0f
+    private var curThrowStrength = "standard"
+    internal var curClickTalk = ""
+
+    /** 桌宠显示/隐藏（灵动岛单击；仅主实例处理） */
+    private fun setHidden(hidden: Boolean) {
+        if (instanceId != 0) return
+        petHidden = hidden
+        val c = container
+        if (c != null) {
+            uiHandler.post { c.visibility = if (hidden) View.GONE else View.VISIBLE }
+            if (hidden) videoView.pausePlay() else videoView.resumePlay()
+            AppLog.log("SVC", "桌宠 ${if (hidden) "隐藏" else "显示"}")
+        }
+    }
+
+    private fun toggleIsland() {
+        if (instanceId != 0) return
+        if (island == null) {
+            island = DynamicIsland(this).also { it.show() }
+        } else {
+            island?.dismiss()
+            island = null
+        }
+    }
+
+    private fun stopIsland() {
+        island?.dismiss()
+        island = null
+    }
+
+    private fun toggleQuickChat() {
+        if (quickChat?.isShowing() == true) {
+            quickChat?.dismiss()
+        } else {
+            if (quickChat == null) quickChat = QuickChat(this)
+            quickChat?.show(engine.winX + engine.winW / 2, engine.winY)
+        }
+    }
+
+    private fun stopQuickChat() {
+        quickChat?.dismiss()
+        quickChat = null
+    }
+
     // ================================================================ Agent 联动（插件总线）
     private var agentBus: com.dshpet.android.plugin.AgentEventBus? = null
+
+    private fun playCollisionSound() {
+        if (curClickSound) playClickSound()
+    }
 
     private fun startAgentBus() {
         if (agentBus != null) return
@@ -520,12 +613,36 @@ open class PetOverlayService : Service() {
                     uiHandler.postDelayed(longPressRunnable, if (curShiftDrag) 300 else 500)
                     true
                 }
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    // 拖拽中第二指按下：进入弹弓蓄力模式（锚点=当前指尖）
+                    if (dragging && ev.pointerCount >= 2) {
+                        slingshotAiming = true
+                        slingshotAnchorX = ev.rawX
+                        slingshotAnchorY = ev.rawY
+                    }
+                    true
+                }
                 MotionEvent.ACTION_MOVE -> {
                     if (!pressActive) return@setOnTouchListener true
                     val dx = ev.rawX - downRawX
                     val dy = ev.rawY - downRawY
+                    if (slingshotAiming) {
+                        // 蓄力中：桌宠被"拉"向锚点反方向（视觉跟随）
+                        val pullX = slingshotAnchorX - ev.rawX
+                        val pullY = slingshotAnchorY - ev.rawY
+                        val pull = hypot(pullX.toDouble(), pullY.toDouble())
+                        if (pull in 24.0..160.0) {
+                            // 拉伸距离内：桌宠朝拉的反方向偏移（弹弓形变感）
+                            moveWindow(
+                                (downRawX - grabOffsetX - pullX * 0.3f).toInt(),
+                                (downRawY - grabOffsetY - pullY * 0.3f).toInt(),
+                            )
+                        }
+                        return@setOnTouchListener true
+                    }
                     val threshold = (PetEngine.DRAG_THRESHOLD * curScale * density).coerceAtLeast(12.0)
                     if (!dragging && hypot(dx.toDouble(), dy.toDouble()) > threshold) {
+                        collisionMember?.infiniteMass = true
                         if (curShiftDrag && !longPressFired) {
                             // 仅长按可拖动：未长按的拖动被忽略，且取消按压状态
                             pressActive = false
@@ -561,6 +678,28 @@ open class PetOverlayService : Service() {
                         justDragged = true
                         uiHandler.postDelayed({ justDragged = false }, 150)
                         engine.onDragEnd()
+                        collisionMember?.infiniteMass = false
+                        // 弹弓发射：按蓄力拉伸发射
+                        if (slingshotAiming) {
+                            slingshotAiming = false
+                            val pullX = (slingshotAnchorX - ev.rawX).toDouble()
+                            val pullY = (slingshotAnchorY - ev.rawY).toDouble()
+                            val dist = hypot(pullX, pullY).coerceIn(24.0, 160.0)
+                            val cap = PetEngine.throwSpeedCap(curThrowStrength)
+                            val speed = PetEngine.softClampSpeed(
+                                900.0 * (dist / 160.0) * (cap / 4800.0), cap
+                            )
+                            if (dist > 24 && speed > 1) {
+                                val len = max(hypot(pullX, pullY), 1e-6)
+                                physVel = doubleArrayOf(
+                                    pullX / len * speed,
+                                    pullY / len * speed,
+                                )
+                                physPos = doubleArrayOf(engine.winX.toDouble(), engine.winY.toDouble())
+                                physMode = "throw"
+                            }
+                            return@setOnTouchListener true
+                        }
                         if (curPhysics) {
                             val now = System.currentTimeMillis()
                             val (vx, vy) = PetEngine.estimateReleaseVelocity(trail, now)
@@ -597,8 +736,21 @@ open class PetOverlayService : Service() {
     }
 
     private fun onTap() {
+        // 双击 → 快速对话气泡（上游 PR#40）
+        val now = System.currentTimeMillis()
+        if (now - lastTapMs < 350) {
+            lastTapMs = 0
+            toggleQuickChat()
+            return
+        }
+        lastTapMs = now
         engine.onTap()
         squash()
+        // 点击台词绑定（上游 v4.1.0：自定义台词+动画）
+        val talk = curClickTalk
+        if (talk.isNotBlank()) {
+            showBubble(talk, 4000)
+        }
         if (curClickSound) playClickSound()
         if (curClickBalance) {
             showBalanceInBubble()
@@ -635,6 +787,10 @@ open class PetOverlayService : Service() {
         lp.x = cx
         lp.y = cy
         runCatching { wm.updateViewLayout(c, lp) }
+        collisionMember?.let {
+            it.x = cx.toDouble(); it.y = cy.toDouble()
+            it.w = engine.winW; it.h = engine.winH
+        }
         engine.syncPosition(cx, cy)
     }
 
@@ -658,6 +814,19 @@ open class PetOverlayService : Service() {
             moveWindow(physPos[0].roundToInt(), physPos[1].roundToInt())
         } else {
             val dt = 0.016
+            // 碰撞成员速度喂入（其它小肥鱼据此与我碰撞）
+            val m = collisionMember
+            if (m != null) {
+                m.vx = physVel[0]; m.vy = physVel[1]
+                // 碰撞结算改变了成员速度 → 采纳
+                val r0 = PetEngine.throwStep(
+                    physPos[0], physPos[1], physVel[0], physVel[1], dt,
+                    left, top, right, bottom,
+                )
+                physPos = doubleArrayOf(r0.px, r0.py)
+                physVel = doubleArrayOf(r0.vx, r0.vy)
+                m.vx = physVel[0]; m.vy = physVel[1]
+            }
             val r = PetEngine.throwStep(
                 physPos[0], physPos[1], physVel[0], physVel[1], dt,
                 left, top, right, bottom,
@@ -717,11 +886,23 @@ open class PetOverlayService : Service() {
         watch(c.flowBool("no_move", false)) { v -> curNoMove = v as Boolean; engine.noMove = curNoMove }
         watch(c.flowBool("lock_position", false)) { v -> curLock = v as Boolean }
         watch(c.flowBool("shift_drag", false)) { v -> curShiftDrag = v as Boolean }
+        watch(c.flowString("throw_strength", "standard")) { v -> curThrowStrength = v as String }
+        watch(c.flowString("click_talk", "")) { v -> curClickTalk = v as String }
         watch(c.flowBool("drag_physics", false)) { v -> curPhysics = v as Boolean }
+        watch(c.flowBool("pet_collision", true)) { v ->
+            curCollision = v as Boolean
+            CollisionHub.setEnabled(curCollision)
+        }
+        watch(c.flowBool("island_enabled", false)) { v ->
+            if (instanceId == 0) {
+                if (v as Boolean) toggleIsland() else stopIsland()
+            }
+        }
         watch(c.flowBool("agent_link_enabled", false)) { v ->
             if (v as Boolean) startAgentBus() else stopAgentBus()
         }
         watch(c.flowDouble("animation_gap_seconds", 0.0)) { v -> curGap = v as Double; engine.animationGapSeconds = curGap }
+        watch(c.flowInt("sound_volume", 100)) { v -> curSoundVolume = (v as Int).coerceIn(0, 100) / 100f }
         watch(c.flowBool("click_sound_enabled", true)) { v -> curClickSound = v as Boolean }
         watch(c.flowBool("click_show_balance", false)) { v -> curClickBalance = v as Boolean }
         watch(c.flowBool("click_show_self_talk", false)) { v -> curClickSelfTalk = v as Boolean }
@@ -834,7 +1015,9 @@ open class PetOverlayService : Service() {
             }
             r.fold(
                 onSuccess = { txt ->
-                    showBubble(txt, 6000)
+                    // 余额峰谷提示（上游 v4.0.4）：北京时间峰谷档位 + 下一切换时间
+                    val tier = Balance.pricingTierText()
+                    showBubble("$txt\n$tier", 6500)
                     // 余额分档动画（上游 v4.0.4）：数值可得时按档位播动画
                     val num = Regex("¥([0-9.]+)").find(txt)?.groupValues?.get(1)?.toDoubleOrNull()
                     if (num != null) {
@@ -916,9 +1099,12 @@ open class PetOverlayService : Service() {
         } catch (e: Exception) { 0 }
     }
 
+    internal var curSoundVolume = 1f
+
     private fun playClickSound() {
         if (clickSoundId != 0) {
-            soundPool?.play(clickSoundId, 1f, 1f, 1, 0, 1f)
+            val v = curSoundVolume
+            soundPool?.play(clickSoundId, v, v, 1, 0, 1f)
         }
     }
 

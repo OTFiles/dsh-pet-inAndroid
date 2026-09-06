@@ -449,6 +449,25 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
             SwitchRow("拖动物理", "松手抛出：惯性、重力、反弹、地面摩擦", physics) { on ->
                 scope.launch { cfg.setDragPhysics(on) }
             }
+            val collision by cfg.flowBool("pet_collision", true).collectAsState(initial = true)
+            SwitchRow("多开碰撞", "小肥鱼们相撞会弹开（鱼塘碰碰车）", collision) { on ->
+                scope.launch { cfg.setCollisionEnabled(on) }
+            }
+            // 甩出/弹弓力度档位（上游 PR#33）
+            val throwStrength by cfg.flowString("throw_strength", "standard").collectAsState(initial = "standard")
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                Text("甩出力度", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("拖拽中按住第二根手指进入弹弓蓄力，松手发射", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("gentle" to "轻柔", "standard" to "标准", "strong" to "强力", "crazy" to "疯狂").forEach { (id, label) ->
+                        FilterChip(
+                            selected = throwStrength == id,
+                            onClick = { scope.launch { cfg.setThrowStrength(id) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+            }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("播放速度", Modifier.width(90.dp), fontSize = 13.sp)
                 Slider(
@@ -470,6 +489,29 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
         }
         Section("点击互动") {
             SwitchRow("点击音效", "点击桌宠时的 Q 弹音效", clickSound) { on -> scope.launch { cfg.setClickSound(on) } }
+            // 音量（上游 v4.0.5）
+            val soundVolume by cfg.flowInt("sound_volume", 100).collectAsState(initial = 100)
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("音效音量", Modifier.width(90.dp), fontSize = 13.sp)
+                Slider(
+                    value = soundVolume.toFloat(), onValueChange = { scope.launch { cfg.setSoundVolume(it.toInt()) } },
+                    valueRange = 0f..100f,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("$soundVolume%", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            }
+            // 点击台词绑定（上游 v4.1.0）
+            val clickTalk by cfg.flowString("click_talk", "").collectAsState(initial = "")
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Text("点击台词", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                OutlinedTextField(
+                    value = clickTalk,
+                    onValueChange = { if (it.length <= 60) scope.launch { cfg.setClickTalk(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("点击桌宠时冒出的台词（留空关闭）", fontSize = 12.sp) },
+                )
+            }
             SwitchRow("点击显示余额", "点击同时查询 DeepSeek 余额", clickBalance) { on -> scope.launch { cfg.setClickShowBalance(on) } }
             SwitchRow("点击自言自语", "点击时随机显示一条自言自语", clickSelfTalk) { on -> scope.launch { cfg.setClickShowSelfTalk(on) } }
         }
@@ -485,6 +527,10 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
     val facing by cfg.flowString("facing", "left").collectAsState(initial = "left")
     val blur by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
     val bubbleStyle by cfg.flowString("self_talk_bubble_style", "classic_top").collectAsState(initial = "classic_top")
+    val islandEnabled by cfg.flowBool("island_enabled", false).collectAsState(initial = false)
+    val islandStyle by cfg.flowString("island_style", "dark").collectAsState(initial = "dark")
+    val islandEmoji by cfg.flowString("island_emoji", "🐳").collectAsState(initial = "🐳")
+    val islandText by cfg.flowString("island_text", "").collectAsState(initial = "")
     val selfTalk by cfg.flowBool("self_talk_enabled", false).collectAsState(initial = false)
     val stMin by cfg.flowInt("self_talk_min_interval", 20).collectAsState(initial = 20)
     val stMax by cfg.flowInt("self_talk_max_interval", 60).collectAsState(initial = 60)
@@ -527,6 +573,39 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
                 else "当前系统版本（<Android 12）不支持硬件模糊，将回退为半透明",
                 blur,
             ) { on -> scope.launch { cfg.setBlur(on) } }
+        }
+        Section("灵动岛") {
+            SwitchRow("显示灵动岛", "胶囊悬浮窗：时间/自定义文本；点击切换桌宠显示/隐藏，可拖动、顶部吸附", islandEnabled) { on ->
+                scope.launch { cfg.setIslandEnabled(on) }
+            }
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                Text("风格", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("dark" to "深色", "light" to "浅色", "glass" to "玻璃").forEach { (id, label) ->
+                        FilterChip(
+                            selected = islandStyle == id,
+                            onClick = { scope.launch { cfg.setIslandStyle(id) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+            }
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("图标", Modifier.width(90.dp), fontSize = 13.sp)
+                OutlinedTextField(
+                    value = islandEmoji, onValueChange = { if (it.length <= 4) scope.launch { cfg.setIslandEmoji(it) } },
+                    modifier = Modifier.width(90.dp),
+                    singleLine = true,
+                )
+                Spacer(Modifier.width(12.dp))
+                Text("文本", Modifier.width(40.dp), fontSize = 13.sp)
+                OutlinedTextField(
+                    value = islandText, onValueChange = { if (it.length <= 16) scope.launch { cfg.setIslandText(it) } },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text("自定义短文本", fontSize = 12.sp) },
+                )
+            }
         }
         Section("自言自语气泡") {
             SwitchRow("允许自言自语", "随机间隔冒出可爱小气泡", selfTalk) { on -> scope.launch { cfg.setSelfTalk(on) } }

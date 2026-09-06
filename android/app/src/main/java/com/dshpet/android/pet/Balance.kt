@@ -32,6 +32,42 @@ object Balance {
         "余额-分文不剩",   // 5: p = 100
     )
 
+    /**
+     * DeepSeek 峰谷计价文案（北京时间）：
+     * 高峰 07:30-09:30 / 16:30-19:30，低谷 00:30-08:30，其余平时。
+     * 返回当前档位+下一切换时间（上游 v4.0.4 同款文案风格）。
+     */
+    fun pricingTierText(now: java.util.Date = java.util.Date()): String {
+        val cal = java.util.Calendar.getInstance(
+            java.util.TimeZone.getTimeZone("Asia/Shanghai")
+        ).apply { time = now }
+        val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
+        val m = cal.get(java.util.Calendar.MINUTE)
+        val t = h * 60 + m
+        // (起始分钟, 结束分钟, 档位)
+        val windows = listOf(
+            Triple(30, 8 * 60, "低谷"),       // 00:30-08:30
+            Triple(7 * 60 + 30, 9 * 60 + 30, "高峰"),   // 07:30-09:30
+            Triple(16 * 60 + 30, 19 * 60 + 30, "高峰"), // 16:30-19:30
+        )
+        var tier = "平时"
+        var nextMin = 24 * 60
+        for ((start, end, name) in windows) {
+            if (t in start until end) {
+                tier = name
+                nextMin = end
+                break
+            }
+        }
+        if (tier == "平时") {
+            // 找下一个窗口起点
+            nextMin = windows.map { it.first }.filter { it > t }.minOrNull() ?: (24 * 60 + 30)
+        }
+        val waitMin = (nextMin - t).coerceAtLeast(0)
+        val waitText = if (waitMin >= 60) "${waitMin / 60}小时${waitMin % 60}分" else "${waitMin}分钟"
+        return "余额时段：$tier（$waitText后切换）"
+    }
+
     fun fetch(
         baseUrl: String,
         apiKey: String,

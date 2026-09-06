@@ -75,6 +75,16 @@ class PetConfig(private val ctx: Context) {
         private val K_MENU_SCALE = doublePreferencesKey("menu_scale")               // 菜单缩放
         private val K_MAX_INSTANCES = intPreferencesKey("max_instances")            // 多开上限(0=不限)
         private val K_AGENT_LINK = booleanPreferencesKey("agent_link_enabled")      // Agent 联动插件总线
+        private val K_COLLISION = booleanPreferencesKey("pet_collision")             // 多开碰撞物理
+        private val K_ISLAND_ENABLED = booleanPreferencesKey("island_enabled")       // 灵动岛
+        private val K_ISLAND_STYLE = stringPreferencesKey("island_style")            // dark/light/glass
+        private val K_ISLAND_EMOJI = stringPreferencesKey("island_emoji")            // 图标
+        private val K_ISLAND_TEXT = stringPreferencesKey("island_text")              // 自定义文本
+        private val K_ISLAND_X = intPreferencesKey("island_x")                       // 位置记忆
+        private val K_ISLAND_Y = intPreferencesKey("island_y")
+        private val K_THROW_STRENGTH = stringPreferencesKey("throw_strength")  // 甩出力度档位
+        private val K_SOUND_VOLUME = intPreferencesKey("sound_volume")        // 音效音量
+        private val K_CLICK_TALK = stringPreferencesKey("click_talk")          // 点击台词绑定
         private val K_ANIM_GAP_SEC = doublePreferencesKey("animation_gap_seconds")
         private val K_CLICK_SOUND = booleanPreferencesKey("click_sound_enabled")
         private val K_CLICK_SHOW_BALANCE = booleanPreferencesKey("click_show_balance")
@@ -213,6 +223,25 @@ class PetConfig(private val ctx: Context) {
     suspend fun setMaxInstances(v: Int) = set("max_instances", v.coerceIn(0, 10))
     suspend fun agentLinkEnabled() = read(K_AGENT_LINK, false)
     suspend fun setAgentLinkEnabled(v: Boolean) = set("agent_link_enabled", v)
+    suspend fun collisionEnabled() = read(K_COLLISION, true)
+    suspend fun setCollisionEnabled(v: Boolean) = set("pet_collision", v)
+    suspend fun islandEnabled() = read(K_ISLAND_ENABLED, false)
+    suspend fun setIslandEnabled(v: Boolean) = set("island_enabled", v)
+    suspend fun islandStyle() = read(K_ISLAND_STYLE, "dark")
+    suspend fun setIslandStyle(v: String) = set("island_style", v)
+    suspend fun islandEmoji() = read(K_ISLAND_EMOJI, "🐳")
+    suspend fun setIslandEmoji(v: String) = set("island_emoji", v)
+    suspend fun islandText() = read(K_ISLAND_TEXT, "")
+    suspend fun setIslandText(v: String) = set("island_text", v)
+    suspend fun islandX() = read(K_ISLAND_X, -1)
+    suspend fun islandY() = read(K_ISLAND_Y, -1)
+    suspend fun setIslandPos(x: Int, y: Int) { set("island_x", x); set("island_y", y) }
+    suspend fun throwStrength() = read(K_THROW_STRENGTH, "standard")
+    suspend fun setThrowStrength(v: String) = set("throw_strength", v)
+    suspend fun soundVolume() = read(K_SOUND_VOLUME, 100).coerceIn(0, 100)
+    suspend fun setSoundVolume(v: Int) = set("sound_volume", v.coerceIn(0, 100))
+    suspend fun clickTalk() = read(K_CLICK_TALK, "")
+    suspend fun setClickTalk(v: String) = set("click_talk", v.take(60))
     suspend fun setAnimGap(v: Double) = set("animation_gap_seconds", v)
     suspend fun setClickSound(v: Boolean) = set("click_sound_enabled", v)
     suspend fun setClickShowBalance(v: Boolean) = set("click_show_balance", v)

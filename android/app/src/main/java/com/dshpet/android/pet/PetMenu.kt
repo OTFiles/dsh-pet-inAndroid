@@ -266,6 +266,7 @@ class PetMenu(
                         lock = !lock; run { cfg.setLockPosition(lock) }
                     }
                     MenuItem(Icons.Filled.Add, "生小肥鱼（多开）") { run { service.spawnPet() } }
+                    MenuItem(Icons.Filled.Star, "灵动岛") { run { service.toggleIsland() } }
                     // ---- 工具 ----
                     MenuGroup("工具")
                     MenuItem(Icons.Filled.Star, "DeepSeek 余额") { run { service.showBalanceInBubble() } }

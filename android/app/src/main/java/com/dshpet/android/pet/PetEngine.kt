@@ -333,6 +333,20 @@ class PetEngine(
         const val P_IDLE = 0.30
         const val P_TURN = 0.40
         const val P_ACTS = 0.80
+        // ---- 甩出力度档位（上游 physics.py 同款）----
+        val THROW_STRENGTH_CAPS = mapOf(
+            "gentle" to 3600.0,    // 轻柔
+            "standard" to 4800.0,  // 标准
+            "strong" to 7200.0,    // 强力
+            "crazy" to 9000.0,     // 疯狂
+        )
+        fun throwSpeedCap(strength: String): Double =
+            THROW_STRENGTH_CAPS[strength.trim().lowercase()] ?: 4800.0
+        fun normalizeThrowStrength(v: String): String {
+            val s = v.trim().lowercase()
+            return if (s in THROW_STRENGTH_CAPS) s else "standard"
+        }
+
         const val MOVE_MIN_PX = 60
         const val MOVE_MAX_PX = 240
         const val MOVE_MARGIN = 20
