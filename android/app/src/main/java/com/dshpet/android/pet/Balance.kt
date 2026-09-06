@@ -9,6 +9,29 @@ import java.util.concurrent.TimeUnit
  */
 object Balance {
 
+    /** 余额数值结果（分档动画用） */
+    data class BalanceInfo(val total: Double, val text: String)
+
+    /**
+     * 余额分档动画（上游 v4.0.4 同款）：
+     * 按 ¥20 满额折算已用百分比 p，6 档；p=100 全部用完格外档。
+     */
+    fun tierIndexFor(total: Double, full: Double = 20.0): Int {
+        if (total <= 0) return 5
+        val p = ((1.0 - total / full) * 100).coerceIn(0.0, 100.0)
+        return if (p >= 100.0) 5 else (p / 20).toInt().coerceIn(0, 4)
+    }
+
+    /** 档位 → 动画名（与桌面端 assets/config.jsonc 一致；缺素材自动回退） */
+    val TIER_ANIMS = listOf(
+        "余额-钱袋满溢",   // 0: p < 20
+        "余额-金袋叮当",   // 1: 20 ≤ p < 40
+        "余额-钱袋如常",   // 2: 40 ≤ p < 60
+        "余额-数金皱眉",   // 3: 60 ≤ p < 80
+        "余额-袋空如洗",   // 4: 80 ≤ p < 100
+        "余额-分文不剩",   // 5: p = 100
+    )
+
     fun fetch(
         baseUrl: String,
         apiKey: String,
