@@ -22,8 +22,15 @@ class PetApp : Application() {
 
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    companion object {
+        /** 进程级 Application 上下文（DataStore 全局单例用） */
+        @Volatile
+        internal var injectedAppContext: android.content.Context? = null
+    }
+
     override fun onCreate() {
         super.onCreate()
+        injectedAppContext = this
         AppLog.init(this)
         installCrashHandler()
         AppLog.log("APP", "启动 v${BuildConfig.VERSION_NAME}")

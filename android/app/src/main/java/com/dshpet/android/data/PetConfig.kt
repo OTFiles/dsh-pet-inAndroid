@@ -2,6 +2,7 @@ package com.dshpet.android.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -18,7 +19,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-private val Context.dataStore by preferencesDataStore(name = "dshpet")
+// 全局设置 DataStore：手动工厂单例（损坏时删除重建，不炸 CorruptionException）。
+// appContext 由 PetApp 启动时注入（Application 上下文，进程级单例安全）。
+private val globalStore: DataStore<Preferences> by lazy {
+    val appCtx = PetApp.injectedAppContext
+        ?: throw IllegalStateException("PetApp 未初始化（正常不应发生）")
+    PreferenceDataStoreFactory.create(
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
+    ) {
+        appCtx.preferencesDataStoreFile("dshpet")
+    }
+}
+private val Context.dataStore: DataStore<Preferences> get() = globalStore
 
 /**
  * 全局设置存储（DataStore）。对应原桌面端 config.json 的字段子集 +
@@ -306,7 +318,11 @@ class PetState(ctx: Context, instanceId: Int) {
 
         private fun storeFor(ctx: Context, id: Int): DataStore<Preferences> =
             stores.getOrPut(id) {
-                PreferenceDataStoreFactory.create {
+                // 文件损坏（进程被杀时写一半）→ 删除重建，避免
+                // CorruptionException 让桌宠永远起不来
+                PreferenceDataStoreFactory.create(
+                    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
+                ) {
                     ctx.preferencesDataStoreFile("pet_state_$id")
                 }
             }

@@ -1,5 +1,43 @@
 {
-  "nextId": 12,
-  "tasks": [],
+  "nextId": 15,
+  "tasks": [
+    {
+      "id": "t12",
+      "content": "修复 DataStore 损坏崩溃（CorruptionException）",
+      "description": "日志：initPet 时 PetState DataStore 抛 CorruptionException（Unable to parse preferences proto）。存储文件损坏（进程被杀时写一半）。修复：DataStore 创建传 ReplaceFileCorruptionHandler 删损坏文件重建，全部三处（全局 dshpet、PetState 实例工厂）都要加。",
+      "status": "in_progress",
+      "priority": "medium",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1788672864516,
+      "updatedAt": 1788672874364,
+      "startedAt": 1788672874364
+    },
+    {
+      "id": "t13",
+      "content": "同步上游 v4.1.0 功能（Android 可行子集）",
+      "description": "上游 dsh-pet-indesktop v4.1.0 新功能：多开碰撞物理（鱼塘碰碰车）、灵动岛、快速对话气泡、聊天窗置顶、自定义 Agent 联动通道（JSONL 事件协议）、音效体系升级、弹弓弹射、余额分档动画、后台音乐检测唱歌。Android 端按可行性选做：碰撞物理（多实例内存共享坐标+碰撞反弹）、余额分档动画、点击台词绑定、音频音量调节。",
+      "status": "pending",
+      "priority": "medium",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1788672864516,
+      "updatedAt": 1788672864516
+    },
+    {
+      "id": "t14",
+      "content": "插件能力（Android）",
+      "description": "设计 Android 插件系统：对齐上游 agent-events JSONL 统一事件协议（零网络本地文件总线）。Android 上用 app 私有目录 agent-events/*.jsonl 作为事件总线，读方 byte-offset tail 增量读，六态词汇 idle/thinking/working/attention/sleeping/error → 动画/气泡映射。提供文档说明外部 App/脚本如何写入（通过 SAF 或 adb/Root）。",
+      "status": "pending",
+      "priority": "medium",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1788672864516,
+      "updatedAt": 1788672864516
+    }
+  ],
   "idempotency": []
 }
