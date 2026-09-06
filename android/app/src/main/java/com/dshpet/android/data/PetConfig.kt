@@ -85,6 +85,7 @@ class PetConfig(private val ctx: Context) {
         private val K_THROW_STRENGTH = stringPreferencesKey("throw_strength")  // 甩出力度档位
         private val K_SOUND_VOLUME = intPreferencesKey("sound_volume")        // 音效音量
         private val K_CLICK_TALK = stringPreferencesKey("click_talk")          // 点击台词绑定
+        private val K_MODEL_LIST = stringSetPreferencesKey("model_list")         // 已同步模型列表
         private val K_ANIM_GAP_SEC = doublePreferencesKey("animation_gap_seconds")
         private val K_CLICK_SOUND = booleanPreferencesKey("click_sound_enabled")
         private val K_CLICK_SHOW_BALANCE = booleanPreferencesKey("click_show_balance")
@@ -242,6 +243,8 @@ class PetConfig(private val ctx: Context) {
     suspend fun setSoundVolume(v: Int) = set("sound_volume", v.coerceIn(0, 100))
     suspend fun clickTalk() = read(K_CLICK_TALK, "")
     suspend fun setClickTalk(v: String) = set("click_talk", v.take(60))
+    suspend fun modelList(): List<String> = read(K_MODEL_LIST, emptySet()).sorted()
+    suspend fun setModelList(list: List<String>) = set("model_list", list.toSet())
     suspend fun setAnimGap(v: Double) = set("animation_gap_seconds", v)
     suspend fun setClickSound(v: Boolean) = set("click_sound_enabled", v)
     suspend fun setClickShowBalance(v: Boolean) = set("click_show_balance", v)

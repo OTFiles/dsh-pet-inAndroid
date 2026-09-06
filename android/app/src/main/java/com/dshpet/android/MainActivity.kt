@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -401,8 +403,11 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    listOf(1, 2, 3, 4, 6, 8, 10, 0).forEach { v ->
+                // 窄屏可横向滑动（LazyRow）
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(listOf(1, 2, 3, 4, 6, 8, 10, 0)) { v ->
                         androidx.compose.material3.FilterChip(
                             selected = maxInstances == v,
                             onClick = {
@@ -410,7 +415,6 @@ private fun BehaviorTab(ctx: android.content.Context, cfg: PetConfig, scope: kot
                                 com.dshpet.android.pet.PetOverlayService.maxInstances = v
                             },
                             label = { Text(if (v == 0) "不限" else "$v") },
-                            modifier = Modifier.padding(end = 6.dp),
                         )
                     }
                 }
@@ -689,6 +693,9 @@ private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.c
     val timeout by cfg.flowInt("chat_timeout", 60).collectAsState(initial = 60)
     var testResult by remember { mutableStateOf<String?>(null) }
     var balanceResult by remember { mutableStateOf<String?>(null) }
+    val models by cfg.flowStringSet("model_list", emptySet()).collectAsState(initial = emptySet())
+    var modelSyncing by remember { mutableStateOf(false) }
+    var modelSyncMsg by remember { mutableStateOf<String?>(null) }
 
     val curCfg = SseClient.ChatCfg(
         baseUrl, chatPath, model, apiKey, temperature, maxTokens, timeout, verifySsl,
@@ -706,7 +713,77 @@ private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.c
             OutlinedTextField(name, { scope.launch { cfg.setChatProviderName(it) } }, label = { Text("服务商名称") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             OutlinedTextField(baseUrl, { scope.launch { cfg.setChatBaseUrl(it) } }, label = { Text("Base URL") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             OutlinedTextField(chatPath, { scope.launch { cfg.setChatPath(it) } }, label = { Text("聊天接口路径") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
-            OutlinedTextField(model, { scope.launch { cfg.setChatModel(it) } }, label = { Text("模型") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
+            // 模型：手动输入 + 同步列表选择（上游 v4.1.0 API/Provider 列表）
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    model,
+                    { scope.launch { cfg.setChatModel(it) } },
+                    label = { Text("模型") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                androidx.compose.material3.OutlinedButton(
+                    enabled = !modelSyncing && apiKey.isNotBlank(),
+                    onClick = {
+                        modelSyncing = true
+                        modelSyncMsg = null
+                        scope.launch {
+                            val r = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                com.dshpet.android.chat.fetchModels(baseUrl, apiKey, verifySsl)
+                            }
+                            r.fold(
+                                onSuccess = { list ->
+                                    cfg.setModelList(list)
+                                    modelSyncMsg = "已同步 ${list.size} 个模型"
+                                },
+                                onFailure = { modelSyncMsg = "同步失败：${it.message}" },
+                            )
+                            modelSyncing = false
+                        }
+                    },
+                ) { Text(if (modelSyncing) "同步中…" else "同步模型") }
+            }
+            if (apiKey.isBlank()) {
+                Text(
+                    "填写 API Key 后可同步模型列表",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+            }
+            modelSyncMsg?.let {
+                Text(
+                    it, fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+            }
+            if (models.isNotEmpty()) {
+                Text(
+                    "选择模型（${models.size}）",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, top = 4.dp),
+                )
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    items(models.sorted()) { m ->
+                        androidx.compose.material3.FilterChip(
+                            selected = m == model,
+                            onClick = { scope.launch { cfg.setChatModel(m) } },
+                            label = { Text(m, fontSize = 11.sp) },
+                        )
+                    }
+                }
+            }
             OutlinedTextField(apiKey, { scope.launch { cfg.setChatApiKey(it) } }, label = { Text("API Key") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("温度", Modifier.width(90.dp), fontSize = 13.sp)

@@ -71,11 +71,8 @@ class DynamicIsland(private val ctx: Context) {
         scope.launch {
             savedX = config.islandX()
             savedY = config.islandY()
-            val style = config.islandStyle()
-            val emoji = config.islandEmoji()
-            val text = config.islandText()
             android.os.Handler(android.os.Looper.getMainLooper()).post {
-                addWindow(style, emoji, text)
+                addWindow()
             }
         }
     }
@@ -85,10 +82,16 @@ class DynamicIsland(private val ctx: Context) {
         view = null
     }
 
-    private fun addWindow(style: String, emoji: String, customText: String) {
+    private fun addWindow() {
         val composeView = androidx.compose.ui.platform.ComposeView(ctx).apply {
             attachComposeHost()
-            setContent { IslandContent(style, emoji, customText) }
+            setContent {
+                // 配置走 Flow：风格/emoji/文本改动即时生效（免重启窗口）
+                val style by config.flowString("island_style", "dark").collectAsState(initial = "dark")
+                val emoji by config.flowString("island_emoji", "🐳").collectAsState(initial = "🐳")
+                val text by config.flowString("island_text", "").collectAsState(initial = "")
+                IslandContent(style, emoji, text)
+            }
         }
         val (sw, sh) = screenPx()
         val w = (sw * 0.5f).toInt()
@@ -198,7 +201,8 @@ class DynamicIsland(private val ctx: Context) {
                 },
             shape = RoundedCornerShape(27.dp),
             color = bg,
-            shadowElevation = 8.dp,
+            // 不用系统阴影：TRANSLUCENT 悬浮窗上 shadowElevation 会在四角
+            // 渲染灰色矩形残留（轮廓由深色底自带）
         ) {
             Row(
                 modifier = Modifier

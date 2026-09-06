@@ -274,6 +274,7 @@ open class PetOverlayService : Service() {
         stopQuickChat()
         collisionMember?.let { CollisionHub.unregister(it.id) }
         collisionMember = null
+        CollisionHub.setOnMoved(instanceId, null)
         stopAgentBus()
         dismissChat()
         easterEggs.forEach { it.dismiss() }
@@ -396,9 +397,30 @@ open class PetOverlayService : Service() {
             id = instanceId,
             x = engine.winX.toDouble(), y = engine.winY.toDouble(),
             w = engine.winW, h = engine.winH,
-        ).also {
+        ).also { m ->
             CollisionHub.setEnabled(curCollision)
-            CollisionHub.register(it)
+            CollisionHub.register(m)
+            // 碰撞结算写回：本实例被撞 → 更新窗口/被撞飞进入抛掷
+            CollisionHub.setOnMoved(instanceId) { member ->
+                uiHandler.post {
+                    if (dragging) return@post
+                    val speed = kotlin.math.hypot(member.vx, member.vy)
+                    if (physMode == null) {
+                        if (speed > 60) {
+                            // 静止的鱼被撞飞
+                            physPos = doubleArrayOf(member.x, member.y)
+                            physVel = doubleArrayOf(member.vx, member.vy)
+                            physMode = "throw"
+                        } else {
+                            moveWindow(member.x.roundToInt(), member.y.roundToInt())
+                            savePosition()
+                        }
+                    } else {
+                        // 抛掷中的鱼：采纳碰撞后的速度
+                        physVel = doubleArrayOf(member.vx, member.vy)
+                    }
+                }
+            }
         }
         scheduleSelfTalk()
         applyOpacity()

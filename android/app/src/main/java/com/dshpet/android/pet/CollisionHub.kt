@@ -62,6 +62,14 @@ object CollisionHub {
     /** 碰撞回调：碰撞力度超过阈值时（碰撞音效门槛） */
     var onImpact: ((impactSpeed: Double) -> Unit)? = null
 
+    /** 成员被撞后把新位置写回窗口（按实例 id 注册，服务侧各管各的） */
+    private val movedCallbacks = mutableMapOf<Int, (Member) -> Unit>()
+
+    @Synchronized
+    fun setOnMoved(id: Int, cb: ((Member) -> Unit)?) {
+        if (cb != null) movedCallbacks[id] = cb else movedCallbacks.remove(id)
+    }
+
     private val ticker = object : Runnable {
         override fun run() {
             if (members.isEmpty()) {
@@ -86,6 +94,7 @@ object CollisionHub {
     @Synchronized
     fun unregister(id: Int) {
         members.remove(id)
+        movedCallbacks.remove(id)
     }
 
     fun setEnabled(on: Boolean) {
@@ -116,9 +125,14 @@ object CollisionHub {
                 maxImpact = max(maxImpact, r)
             }
         }
-        if (collided && maxImpact > 300 && onImpact != null) {
+        if (collided && maxImpact > 300) {
             // 碰撞音效门槛（上游同款）
             onImpact?.invoke(maxImpact)
+        }
+        if (collided) {
+            // 位置/速度变化写回（各服务把成员位置应用到窗口）
+            val cbs = synchronized(movedCallbacks) { movedCallbacks.toMap() }
+            list.forEach { m -> cbs[m.id]?.invoke(m) }
         }
         return collided
     }
