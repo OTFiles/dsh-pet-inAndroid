@@ -101,6 +101,16 @@ class PetEngine(
     }
 
     /** 主动播放某段动画（菜单"动画集"手动播放、点击、拖拽等） */
+    /** 是否有该动画（联动/分档动画缺素材时回退用） */
+    fun hasAnim(name: String): Boolean =
+        name in idles || name in turns || name in moves || name in clicks || name in acts
+
+    /** 回到待机（Agent idle/sleeping 联动用） */
+    fun switchToIdle() {
+        if (dragging) return
+        switch(idles.firstOrNull() ?: return)
+    }
+
     fun switch(name: String) {
         anim = name
         play(name)

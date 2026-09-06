@@ -262,6 +262,7 @@ open class PetOverlayService : Service() {
         savePosition()
         removeMenu()
         bubble?.dismiss()
+        stopAgentBus()
         dismissChat()
         easterEggs.forEach { it.dismiss() }
         easterEggs.clear()
@@ -361,12 +362,48 @@ open class PetOverlayService : Service() {
         // 启动动画链
         engine.start()
         uiHandler.postDelayed(moveTicker, 33)
+
+        // Agent 联动插件总线（上游统一事件协议；默认关，设置开启）
+        if (config.agentLinkEnabled()) startAgentBus()
         scheduleSelfTalk()
         applyOpacity()
         AppLog.log(
             "SVC",
             "initPet 完成 ${android.os.SystemClock.elapsedRealtime() - t0}ms，窗口 ${engine.winX},${engine.winY} ${engine.winW}x${engine.winH} ${mem()}"
         )
+    }
+
+    // ================================================================ Agent 联动（插件总线）
+    private var agentBus: com.dshpet.android.plugin.AgentEventBus? = null
+
+    private fun startAgentBus() {
+        if (agentBus != null) return
+        agentBus = com.dshpet.android.plugin.AgentEventBus(this) { agent, state ->
+            onAgentState(agent, state)
+        }.also { it.start() }
+    }
+
+    private fun stopAgentBus() {
+        agentBus?.stop()
+        agentBus = null
+    }
+
+    /** 六态 → 动画/气泡（上游 agent_link_presentation 同款映射） */
+    private fun onAgentState(agent: String, state: String) {
+        AppLog.log("PLUGIN", "Agent[$agent] 状态: $state")
+        when (state) {
+            "thinking", "working" -> {
+                // 联动动作池轮换（写代码/敲击为主）
+                val pool = listOf("写代码", "原地敲击桌面互动", "吃Token", "深度思考碎碎念")
+                    .filter { engine.hasAnim(it) }
+                if (pool.isNotEmpty()) {
+                    engine.switch(pool[kotlin.random.Random.nextInt(pool.size)])
+                }
+            }
+            "attention" -> showBubble("主人，Agent（$agent）这边需要你看一眼～", 6000)
+            "error" -> showBubble("Agent（$agent）执行好像遇到报错了…", 6000)
+            "idle", "sleeping" -> engine.switchToIdle()
+        }
     }
 
     // ================================================================ 自言自语
@@ -681,6 +718,9 @@ open class PetOverlayService : Service() {
         watch(c.flowBool("lock_position", false)) { v -> curLock = v as Boolean }
         watch(c.flowBool("shift_drag", false)) { v -> curShiftDrag = v as Boolean }
         watch(c.flowBool("drag_physics", false)) { v -> curPhysics = v as Boolean }
+        watch(c.flowBool("agent_link_enabled", false)) { v ->
+            if (v as Boolean) startAgentBus() else stopAgentBus()
+        }
         watch(c.flowDouble("animation_gap_seconds", 0.0)) { v -> curGap = v as Double; engine.animationGapSeconds = curGap }
         watch(c.flowBool("click_sound_enabled", true)) { v -> curClickSound = v as Boolean }
         watch(c.flowBool("click_show_balance", false)) { v -> curClickBalance = v as Boolean }
@@ -793,7 +833,18 @@ open class PetOverlayService : Service() {
                 Balance.fetch(config.chatBaseUrl(), apiKey, config.chatVerifySsl(), config.chatTimeout())
             }
             r.fold(
-                onSuccess = { showBubble(it, 6000) },
+                onSuccess = { txt ->
+                    showBubble(txt, 6000)
+                    // 余额分档动画（上游 v4.0.4）：数值可得时按档位播动画
+                    val num = Regex("¥([0-9.]+)").find(txt)?.groupValues?.get(1)?.toDoubleOrNull
+                    if (num != null) {
+                        val tier = Balance.tierIndexFor(num)
+                        val anim = Balance.TIER_ANIMS.getOrNull(tier)
+                        if (anim != null && engine.hasAnim(anim)) {
+                            engine.switch(anim)
+                        }
+                    }
+                },
                 onFailure = { showBubble("余额查询失败：${it.message}", 7000) },
             )
         }

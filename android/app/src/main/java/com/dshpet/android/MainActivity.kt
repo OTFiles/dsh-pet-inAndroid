@@ -598,6 +598,7 @@ private fun styleLabel(s: String): String = when (s) {
 // ================================================================ AI 对话
 @Composable
 private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.coroutines.CoroutineScope) {
+    val agentLink by cfg.flowBool("agent_link_enabled", false).collectAsState(initial = false)
     val name by cfg.flowString("chat_provider_name", "DeepSeek").collectAsState(initial = "DeepSeek")
     val baseUrl by cfg.flowString("chat_base_url", "https://api.deepseek.com").collectAsState(initial = "https://api.deepseek.com")
     val chatPath by cfg.flowString("chat_chat_path", "/v1/chat/completions").collectAsState(initial = "/v1/chat/completions")
@@ -615,6 +616,13 @@ private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.c
     )
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
+        Section("Agent 联动（插件）") {
+            SwitchRow(
+                "监听 Agent 事件",
+                "读取 /sdcard/dsh-pet/agent-events/*.jsonl，AI Agent 状态联动桌宠动画/气泡（详见 README-Android 插件协议）",
+                agentLink,
+            ) { on -> scope.launch { cfg.setAgentLinkEnabled(on) } }
+        }
         Section("服务配置（OpenAI 兼容）") {
             OutlinedTextField(name, { scope.launch { cfg.setChatProviderName(it) } }, label = { Text("服务商名称") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             OutlinedTextField(baseUrl, { scope.launch { cfg.setChatBaseUrl(it) } }, label = { Text("Base URL") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))

@@ -73,6 +73,7 @@ class PetConfig(private val ctx: Context) {
         private val K_MOVE_MAX_PX = intPreferencesKey("move_max_px")                // 散步最大距离
         private val K_MENU_SCALE = doublePreferencesKey("menu_scale")               // 菜单缩放
         private val K_MAX_INSTANCES = intPreferencesKey("max_instances")            // 多开上限(0=不限)
+        private val K_AGENT_LINK = booleanPreferencesKey("agent_link_enabled")      // Agent 联动插件总线
         private val K_ANIM_GAP_SEC = doublePreferencesKey("animation_gap_seconds")
         private val K_CLICK_SOUND = booleanPreferencesKey("click_sound_enabled")
         private val K_CLICK_SHOW_BALANCE = booleanPreferencesKey("click_show_balance")
@@ -209,6 +210,8 @@ class PetConfig(private val ctx: Context) {
     suspend fun setMenuScale(v: Double) = set("menu_scale", v.coerceIn(0.7, 1.4))
     suspend fun maxInstances() = read(K_MAX_INSTANCES, 4).coerceIn(0, 10)
     suspend fun setMaxInstances(v: Int) = set("max_instances", v.coerceIn(0, 10))
+    suspend fun agentLinkEnabled() = read(K_AGENT_LINK, false)
+    suspend fun setAgentLinkEnabled(v: Boolean) = set("agent_link_enabled", v)
     suspend fun setAnimGap(v: Double) = set("animation_gap_seconds", v)
     suspend fun setClickSound(v: Boolean) = set("click_sound_enabled", v)
     suspend fun setClickShowBalance(v: Boolean) = set("click_show_balance", v)
