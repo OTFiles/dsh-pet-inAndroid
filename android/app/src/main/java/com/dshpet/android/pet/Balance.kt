@@ -64,8 +64,9 @@ object Balance {
             nextMin = windows.map { it.first }.filter { it > t }.minOrNull() ?: (24 * 60 + 30)
         }
         val waitMin = (nextMin - t).coerceAtLeast(0)
-        val waitText = if (waitMin >= 60) "${waitMin / 60}小时${waitMin % 60}分" else "${waitMin}分钟"
-        return "余额时段：$tier（$waitText后切换）"
+        val waitText = if (waitMin >= 60) (waitMin / 60).toString() + "小时" + (waitMin % 60) + "分"
+                       else waitMin.toString() + "分钟"
+        return "余额时段：" + tier + "（" + waitText + "后切换）"
     }
 
     fun fetch(

@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.hypot
 
 /**
  * 灵动岛胶囊窗口（上游 dynamic_island.py 的 Android 版）。

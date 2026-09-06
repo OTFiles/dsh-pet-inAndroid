@@ -35,6 +35,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.hypot
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
@@ -433,7 +434,7 @@ open class PetOverlayService : Service() {
         }
     }
 
-    private fun toggleIsland() {
+    fun toggleIsland() {
         if (instanceId != 0) return
         if (island == null) {
             island = DynamicIsland(this).also { it.show() }

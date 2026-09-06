@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -164,7 +165,7 @@ class QuickChat(private val ctx: Context) {
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(androidx.compose.ui.unit.Dp.Unspecified)
+                            .heightIn(max = 160.dp)
                             .padding(vertical = 4.dp)
                             .verticalScroll(rememberScrollState()),
                     )
