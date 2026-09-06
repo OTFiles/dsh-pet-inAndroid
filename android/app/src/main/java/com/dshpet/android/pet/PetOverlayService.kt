@@ -748,12 +748,17 @@ open class PetOverlayService : Service() {
     fun spawnPet() {
         scope.launch {
             val active = activeInstanceIds()
-            if (active.size >= MAX_INSTANCES) {
-                showBubble("最多同时 ${MAX_INSTANCES} 只小肥鱼～", 3000)
+            val cap = maxInstances
+            if (cap > 0 && active.size >= cap) {
+                showBubble("最多同时 $cap 只小肥鱼～", 3000)
                 return@launch
             }
-            // 复用最小空闲 id（1..3）
-            val id = (1 until MAX_INSTANCES).firstOrNull { it !in active } ?: return@launch
+            if (active.size >= SLOT_COUNT) {
+                showBubble("已达槽位上限（$SLOT_COUNT 只）～", 3000)
+                return@launch
+            }
+            // 复用最小空闲 id
+            val id = (1 until SLOT_COUNT).firstOrNull { it !in active } ?: return@launch
             PetOverlayService.ensureRunning(this@PetOverlayService, id)
             showBubble("一只新的小肥鱼诞生啦！", 4000)
         }
