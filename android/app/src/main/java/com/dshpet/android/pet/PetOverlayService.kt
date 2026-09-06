@@ -836,7 +836,7 @@ open class PetOverlayService : Service() {
                 onSuccess = { txt ->
                     showBubble(txt, 6000)
                     // 余额分档动画（上游 v4.0.4）：数值可得时按档位播动画
-                    val num = Regex("¥([0-9.]+)").find(txt)?.groupValues?.get(1)?.toDoubleOrNull
+                    val num = Regex("¥([0-9.]+)").find(txt)?.groupValues?.get(1)?.toDoubleOrNull()
                     if (num != null) {
                         val tier = Balance.tierIndexFor(num)
                         val anim = Balance.TIER_ANIMS.getOrNull(tier)

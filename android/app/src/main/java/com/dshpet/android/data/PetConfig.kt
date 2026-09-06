@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
@@ -22,7 +23,7 @@ import kotlinx.coroutines.flow.map
 // 全局设置 DataStore：手动工厂单例（损坏时删除重建，不炸 CorruptionException）。
 // appContext 由 PetApp 启动时注入（Application 上下文，进程级单例安全）。
 private val globalStore: DataStore<Preferences> by lazy {
-    val appCtx = PetApp.injectedAppContext
+    val appCtx = com.dshpet.android.PetApp.injectedAppContext
         ?: throw IllegalStateException("PetApp 未初始化（正常不应发生）")
     PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
