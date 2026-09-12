@@ -17,6 +17,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.preferencesDataStoreFile
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
@@ -289,8 +290,11 @@ class PetConfig(private val ctx: Context) {
     }
 
     // ================ Flow 版本（供 Compose 响应式 UI） ================
+    // 注意：DataStore 任意键的每次 edit 都会重发整个 Preferences；
+    // 必须 distinctUntilChanged，否则改任何设置会让所有 watch 重复触发
+    //（灵动岛曾因此被反复重建）
     fun <T> flow(key: androidx.datastore.preferences.core.Preferences.Key<T>, default: T): Flow<T> =
-        ds.data.map { it[key] ?: default }
+        ds.data.map { it[key] ?: default }.distinctUntilChanged()
 
     fun flowBool(key: String, default: Boolean) =
         flow(booleanPreferencesKey(key), default)
