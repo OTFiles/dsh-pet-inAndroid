@@ -68,6 +68,7 @@ class DynamicIsland(private val ctx: Context) {
     // ================================================================ 窗口管理
     fun show() {
         if (shown) return
+        shown = true  // 立即置位：防 launch 期间重复调用穿透
         scope.launch {
             val savedX = config.islandX()
             val savedY = config.islandY()
