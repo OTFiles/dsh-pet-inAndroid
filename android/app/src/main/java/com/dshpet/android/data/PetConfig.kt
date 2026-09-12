@@ -82,6 +82,8 @@ class PetConfig(private val ctx: Context) {
         private val K_ISLAND_TEXT = stringPreferencesKey("island_text")              // 自定义文本
         private val K_ISLAND_X = intPreferencesKey("island_x")                       // 位置记忆
         private val K_ISLAND_Y = intPreferencesKey("island_y")
+        private val K_ISLAND_W_PCT = intPreferencesKey("island_width_pct")  // 宽（屏宽%）
+        private val K_ISLAND_H_DP = intPreferencesKey("island_height_dp")   // 高（dp）
         private val K_THROW_STRENGTH = stringPreferencesKey("throw_strength")  // 甩出力度档位
         private val K_SOUND_VOLUME = intPreferencesKey("sound_volume")        // 音效音量
         private val K_CLICK_TALK = stringPreferencesKey("click_talk")          // 点击台词绑定
@@ -237,6 +239,10 @@ class PetConfig(private val ctx: Context) {
     suspend fun islandX() = read(K_ISLAND_X, -1)
     suspend fun islandY() = read(K_ISLAND_Y, -1)
     suspend fun setIslandPos(x: Int, y: Int) { set("island_x", x); set("island_y", y) }
+    suspend fun islandWidthPct() = read(K_ISLAND_W_PCT, 50).coerceIn(30, 90)
+    suspend fun setIslandWidthPct(v: Int) = set("island_width_pct", v.coerceIn(30, 90))
+    suspend fun islandHeightDp() = read(K_ISLAND_H_DP, 54).coerceIn(36, 96)
+    suspend fun setIslandHeightDp(v: Int) = set("island_height_dp", v.coerceIn(36, 96))
     suspend fun throwStrength() = read(K_THROW_STRENGTH, "standard")
     suspend fun setThrowStrength(v: String) = set("throw_strength", v)
     suspend fun soundVolume() = read(K_SOUND_VOLUME, 100).coerceIn(0, 100)

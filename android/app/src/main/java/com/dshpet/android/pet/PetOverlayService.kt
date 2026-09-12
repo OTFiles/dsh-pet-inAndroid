@@ -458,11 +458,11 @@ open class PetOverlayService : Service() {
 
     fun toggleIsland() {
         if (instanceId != 0) return
-        if (island == null) {
-            island = DynamicIsland(this).also { it.show() }
-        } else {
+        if (island?.isShowing == true) {
             island?.dismiss()
-            island = null
+        } else {
+            if (island == null) island = DynamicIsland(this)
+            island?.show()
         }
     }
 
@@ -920,6 +920,11 @@ open class PetOverlayService : Service() {
             if (instanceId == 0) {
                 if (v as Boolean) toggleIsland() else stopIsland()
             }
+        }
+        if (instanceId == 0) {
+            // 灵动岛尺寸/样式即时生效（窗口内 Flow 已响应；尺寸走 applySize）
+            watch(c.flowInt("island_width_pct", 50)) { }
+            watch(c.flowInt("island_height_dp", 54)) { }
         }
         watch(c.flowBool("agent_link_enabled", false)) { v ->
             if (v as Boolean) startAgentBus() else stopAgentBus()

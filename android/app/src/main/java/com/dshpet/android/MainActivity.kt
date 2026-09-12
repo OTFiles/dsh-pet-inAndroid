@@ -532,6 +532,8 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
     val blur by cfg.flowBool("blur_enabled", false).collectAsState(initial = false)
     val bubbleStyle by cfg.flowString("self_talk_bubble_style", "classic_top").collectAsState(initial = "classic_top")
     val islandEnabled by cfg.flowBool("island_enabled", false).collectAsState(initial = false)
+    val islandW by cfg.flowInt("island_width_pct", 50).collectAsState(initial = 50)
+    val islandH by cfg.flowInt("island_height_dp", 54).collectAsState(initial = 54)
     val islandStyle by cfg.flowString("island_style", "dark").collectAsState(initial = "dark")
     val islandEmoji by cfg.flowString("island_emoji", "🐳").collectAsState(initial = "🐳")
     val islandText by cfg.flowString("island_text", "").collectAsState(initial = "")
@@ -593,6 +595,25 @@ private fun AppearanceTab(ctx: android.content.Context, cfg: PetConfig, scope: k
                         )
                     }
                 }
+            }
+            // 宽/高滑杆（即时生效）
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("宽度", Modifier.width(90.dp), fontSize = 13.sp)
+                Slider(
+                    value = islandW.toFloat(), onValueChange = { scope.launch { cfg.setIslandWidthPct(it.toInt()) } },
+                    valueRange = 30f..90f,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("${islandW}%", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            }
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("高度", Modifier.width(90.dp), fontSize = 13.sp)
+                Slider(
+                    value = islandH.toFloat(), onValueChange = { scope.launch { cfg.setIslandHeightDp(it.toInt()) } },
+                    valueRange = 36f..96f,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("${islandH}dp", Modifier.width(44.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("图标", Modifier.width(90.dp), fontSize = 13.sp)
