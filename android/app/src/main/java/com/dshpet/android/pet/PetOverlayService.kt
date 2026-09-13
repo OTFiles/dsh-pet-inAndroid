@@ -387,9 +387,9 @@ open class PetOverlayService : Service() {
         // Agent 联动插件总线（上游统一事件协议；默认关，设置开启）
         if (config.agentLinkEnabled()) startAgentBus()
 
-        // 灵动岛（设置开启则随主实例启动）
+        // 灵动岛（设置开启则随主实例启动；统一入口，防 watch 双重创建）
         if (instanceId == 0 && config.islandEnabled()) {
-            island = DynamicIsland(this).also { it.show() }
+            ensureIsland()
         }
 
         // 多开碰撞物理（上游"鱼塘碰碰车"；默认开）
@@ -456,15 +456,23 @@ open class PetOverlayService : Service() {
         }
     }
 
+    /** 菜单入口：切换（显示↔隐藏） */
     fun toggleIsland() {
         if (instanceId != 0) return
         AppLog.log("ISLAND", "toggleIsland: isShowing=${island?.isShowing}")
         if (island?.isShowing == true) {
             island?.dismiss()
         } else {
-            if (island == null) island = DynamicIsland(this)
-            island?.show()
+            ensureIsland()
         }
+    }
+
+    /** 显示灵动岛：唯一创建入口（已有实例先关再复用，绝不多窗口） */
+    private fun ensureIsland() {
+        if (island?.isShowing == true) return
+        // 关掉可能的孤儿实例（上次未正常 dismiss 的）
+        island?.dismiss()
+        island = DynamicIsland(this).also { it.show() }
     }
 
     private fun stopIsland() {
@@ -921,7 +929,7 @@ open class PetOverlayService : Service() {
         watch(c.flowBool("island_enabled", false)) { v ->
             AppLog.log("ISLAND", "watch island_enabled=$v instance=$instanceId")
             if (instanceId == 0) {
-                if (v as Boolean) toggleIsland() else stopIsland()
+                if (v as Boolean) ensureIsland() else stopIsland()
             }
         }
         // 灵动岛尺寸即时生效：窗口内 LaunchedEffect 已响应（Flow 已 distinct）
