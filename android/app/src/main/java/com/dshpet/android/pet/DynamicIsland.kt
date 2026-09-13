@@ -67,15 +67,21 @@ class DynamicIsland(private val ctx: Context) {
 
     // ================================================================ 窗口管理
     fun show() {
+        AppLog.log("ISLAND", "show() 调用 shown=$shown")
         if (shown) return
         shown = true  // 立即置位：防 launch 期间重复调用穿透
         scope.launch {
-            val savedX = config.islandX()
-            val savedY = config.islandY()
-            val wPct = config.islandWidthPct()
-            val hDp = config.islandHeightDp()
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
+            try {
+                val savedX = config.islandX()
+                val savedY = config.islandY()
+                val wPct = config.islandWidthPct()
+                val hDp = config.islandHeightDp()
+                AppLog.log("ISLAND", "配置读取完成 pos=($savedX,$savedY) ${wPct}%x${hDp}dp")
                 addWindow(savedX, savedY, wPct, hDp)
+            } catch (e: Throwable) {
+                AppLog.log("ISLAND", "show() 失败: ${e.javaClass.simpleName}: ${e.message}\n" +
+                        android.util.Log.getStackTraceString(e))
+                shown = false
             }
         }
     }
@@ -87,7 +93,8 @@ class DynamicIsland(private val ctx: Context) {
     }
 
     private fun addWindow(savedX: Int, savedY: Int, wPct: Int, hDp: Int) {
-        if (shown) return
+        AppLog.log("ISLAND", "addWindow 开始")
+        if (view != null) return
         val composeView = androidx.compose.ui.platform.ComposeView(ctx).apply {
             attachComposeHost()
             setContent { IslandContent() }

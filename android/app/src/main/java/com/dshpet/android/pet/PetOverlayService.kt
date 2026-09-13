@@ -458,6 +458,7 @@ open class PetOverlayService : Service() {
 
     fun toggleIsland() {
         if (instanceId != 0) return
+        AppLog.log("ISLAND", "toggleIsland: isShowing=${island?.isShowing}")
         if (island?.isShowing == true) {
             island?.dismiss()
         } else {
@@ -467,6 +468,7 @@ open class PetOverlayService : Service() {
     }
 
     private fun stopIsland() {
+        AppLog.log("ISLAND", "stopIsland")
         island?.dismiss()
         island = null
     }
@@ -917,6 +919,7 @@ open class PetOverlayService : Service() {
             CollisionHub.setEnabled(curCollision)
         }
         watch(c.flowBool("island_enabled", false)) { v ->
+            AppLog.log("ISLAND", "watch island_enabled=$v instance=$instanceId")
             if (instanceId == 0) {
                 if (v as Boolean) toggleIsland() else stopIsland()
             }
