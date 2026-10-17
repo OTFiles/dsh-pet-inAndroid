@@ -766,6 +766,7 @@ private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.c
                     }) { Text("所有文件访问") }
                 }
             }
+        }
         Section("服务配置（OpenAI 兼容）") {
             OutlinedTextField(name, { scope.launch { cfg.setChatProviderName(it) } }, label = { Text("服务商名称") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             OutlinedTextField(baseUrl, { scope.launch { cfg.setChatBaseUrl(it) } }, label = { Text("Base URL") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
