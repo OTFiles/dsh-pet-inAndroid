@@ -14,6 +14,14 @@
     <!-- 网络（AI 对话 / 余额 / 更新检查） -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Agent 联动事件目录（Android 11+ 读共享存储非媒体文件需「所有文件访问」；
+         也可改用设置里的 SAF 目录选择，则无需此权限） -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <!-- 忽略电池优化引导 -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 

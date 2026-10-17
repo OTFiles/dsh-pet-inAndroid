@@ -726,10 +726,46 @@ private fun AiTab(ctx: android.content.Context, cfg: PetConfig, scope: kotlinx.c
         Section("Agent 联动（插件）") {
             SwitchRow(
                 "监听 Agent 事件",
-                "读取 /sdcard/dsh-pet/agent-events/*.jsonl，AI Agent 状态联动桌宠动画/气泡（详见 README-Android 插件协议）",
+                "读取事件目录下的 *.jsonl，AI Agent 状态联动桌宠动画/气泡",
                 agentLink,
             ) { on -> scope.launch { cfg.setAgentLinkEnabled(on) } }
-        }
+
+            // 事件目录授权（Android 11+ 存储限制：SAF 或「所有文件访问」二选一）
+            var eventSource by remember { mutableStateOf(com.dshpet.android.plugin.AgentEventBus.describeSource(ctx)) }
+            val safLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.OpenDocumentTree()
+            ) { uri ->
+                if (uri != null) {
+                    runCatching {
+                        ctx.contentResolver.takePersistableUriPermission(
+                            uri,
+                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    }
+                    com.dshpet.android.plugin.AgentEventBus.treeUri = uri
+                    scope.launch { cfg.setAgentEventsTreeUri(uri.toString()) }
+                    eventSource = com.dshpet.android.plugin.AgentEventBus.describeSource(ctx)
+                }
+            }
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text("事件目录", fontSize = 13.sp)
+                Text(
+                    eventSource,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                    Button(onClick = { safLauncher.launch(null) }) { Text("选择目录") }
+                    OutlinedButton(onClick = {
+                        // 已授权：直接启用公共目录
+                        val it = android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                            android.net.Uri.parse("package:" + ctx.packageName),
+                        )
+                        runCatching { ctx.startActivity(it) }
+                    }) { Text("所有文件访问") }
+                }
+            }
         Section("服务配置（OpenAI 兼容）") {
             OutlinedTextField(name, { scope.launch { cfg.setChatProviderName(it) } }, label = { Text("服务商名称") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))
             OutlinedTextField(baseUrl, { scope.launch { cfg.setChatBaseUrl(it) } }, label = { Text("Base URL") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp))

@@ -2,12 +2,24 @@
 
 > 对齐上游桌面端 `docs/AGENT_LINK_PROTOCOL.md` 统一事件协议。零网络、零代码接入。
 
+## 事件目录（三选一，受 Android 存储隔离限制）
+
+| 方式 | 路径 | 需要权限 |
+|---|---|---|
+| **SAF 选择目录**（推荐） | 你在设置里选的任意目录 | 无（用户选择 + 持久授权） |
+| 所有文件访问 | `/sdcard/dsh-pet/agent-events/` | MANAGE_EXTERNAL_STORAGE（设置页「所有文件访问」授权） |
+| 私有目录 | `/sdcard/Android/data/com.dshpet.android/files/agent-events/` | 无（adb/root 可写） |
+
+> Android 11+ 起，普通 App 用 File API 读共享存储中的 `.jsonl` 等非媒体文件需要
+> 「所有文件访问」权限；用 SAF 选择目录则完全不需要敏感权限，**推荐用这种方式**。
+> 设置 → AI 对话 → 事件目录 → 「选择目录」后，把你的事件文件写进该目录即可。
+
 ## 快速接入（任意 App / 脚本 / AI Agent）
 
-往这个文件**追加写**一行 JSON 即可：
+往事件目录下**追加写**一行 JSON 即可：
 
 ```
-/sdcard/dsh-pet/agent-events/<你的agent名>.jsonl
+<事件目录>/<你的agent名>.jsonl
 ```
 
 例如（Tasker / adb shell / Root 脚本 / 任何有存储权限的 App）：

@@ -3,6 +3,13 @@
 > **Android 版**：本仓库同时包含桌宠的 Android 原生移植版（Kotlin + Compose MD3，透明悬浮窗桌宠，
 > GitHub Actions 自动构建 APK）。详见 **[android/README-Android.md](android/README-Android.md)**，
 > 最新 APK 见 [Releases](https://github.com/OTFiles/dsh-pet-inAndroid/releases)。
+>
+> **⚠️ 关于 Android 版的移植方式**：`android/` 目录下的全部代码（Kotlin 源码、Gradle 工程、
+> 构建脚本、CI 工作流、素材预处理管线与文档）**均由 AI（Claude / DeepSeek 等大语言模型）
+> 在人工需求描述与测试反馈驱动下逐轮生成、调试与迭代完成**，并非人工逐行编写。桌面端
+> `pet/`、`assets/` 等目录为原作者（MerZlin / PC2005-cloud）的原创成果，Android 版仅对其
+> 行为与素材做平台移植。使用前请知悉：AI 生成代码可能存在未被发现的缺陷，请以实际测试为准，
+> 欢迎提交 issue 反馈。
 
 一个基于 **Python + PySide6** 的独立桌面宠物。项目脱离 DSH 运行时，提供透明无边框、置顶、可拖动、角色切换、动画播放、系统托盘和可选 AI 对话能力。
 

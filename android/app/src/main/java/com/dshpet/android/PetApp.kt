@@ -41,6 +41,19 @@ class PetApp : Application() {
             // 同步 launcher 入口（隐藏后台开关）与开机自启接收器状态
             PetConfig.hideRecentsCached = cfg.hideFromRecents()
             com.dshpet.android.pet.PetOverlayService.maxInstances = cfg.maxInstances()
+            // 恢复 Agent 事件目录（SAF 持久授权）
+            runCatching {
+                val tree = cfg.agentEventsTreeUri()
+                if (tree.isNotBlank()) {
+                    com.dshpet.android.plugin.AgentEventBus.treeUri = android.net.Uri.parse(tree)
+                    // 校验持久授权仍然有效（用户可能在系统里撤销）
+                    val perms = contentResolver.persistedUriPermissions
+                    if (perms.none { it.uri.toString() == tree && it.isReadPermission }) {
+                        AppLog.log("PLUGIN", "SAF 授权已失效: $tree")
+                        com.dshpet.android.plugin.AgentEventBus.treeUri = null
+                    }
+                }
+            }
             MainActivity.applyRecentsAlias(this@PetApp, cfg.hideFromRecents())
             setBootReceiverEnabled(cfg.autoStart())
             if (cfg.autoStart() && cfg.overlayPermissionGranted()) {

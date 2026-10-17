@@ -33,7 +33,8 @@
 | 快捷启动 | ✅ 长按菜单启动已选应用 |
 | 开机自启 | ✅ `BOOT_COMPLETED` 接收器 + 设置开关 |
 | 窗口透明区域鼠标穿透 | ➖ 触屏设备整窗为点击区（拖拽目标更大，体验更佳） |
-| 主动识屏 / Agent 联动（DSH 桥接） | ➖ Windows 专属，无对应场景 |
+| 主动识屏 | ➖ Windows 专属，无对应场景 |
+| **Agent 联动（插件事件总线）** | ✅ 已实现：对齐上游统一事件协议，见 `docs/PLUGIN-PROTOCOL.md` |
 | 直播捕获兼容模式 | ➖ 无直播场景 |
 
 ## Android 专属新增
@@ -92,7 +93,15 @@ cd android && ./gradlew :app:assembleRelease
 - 素材为构建时重编码产物（不入库），改素材后需重新运行预处理脚本。
 - 个别机型后台限制严格，建议开启忽略电池优化；被系统回收后，通知栏或重新打开应用可恢复。
 - 聊天背景主题（内置壁纸/自定义图片）暂未移植（保留素材，后续可加）。
-- 桌面端「主动识屏」「Agent 联动」「直播捕获」为 Windows 专属，无对应 Android 场景。
+- 桌面端「主动识屏」「直播捕获」为 Windows 专属，无对应 Android 场景。
+- **Agent 联动**已移植：Android 版通过本地 JSONL 事件总线接收任意 Agent 的状态事件
+  （零网络、零代码接入），完整协议见 **[docs/PLUGIN-PROTOCOL.md](docs/PLUGIN-PROTOCOL.md)**。
+  受 Android 存储隔离限制，事件目录需三选一：
+  1. 设置 → AI 对话 → 事件目录「选择目录」（SAF，推荐，无需敏感权限）；
+  2. 「所有文件访问」授权后使用 `/sdcard/dsh-pet/agent-events/`；
+  3. 不授权时读 app 私有目录（`/sdcard/Android/data/com.dshpet.android/files/agent-events/`，
+     adb/root 可写）。
+- 本 Android 移植版由 **AI 生成并经多轮实机测试迭代**，详见仓库根 README 的说明。
 
 ## 目录结构
 
