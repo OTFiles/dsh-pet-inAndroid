@@ -950,7 +950,7 @@ open class PetOverlayService : Service() {
             engine.setFacing(v as String)
             videoView.setMirror(engine.shouldMirror(engine.anim ?: ""))
         }
-        watch(c.flowStringSet("self_talk_texts", emptySet())) { v ->
+        watch(c.flowStringSet("self_talk_texts", setOf("好女孩……", "好模型……", "欧鲸鲸……", "今天也要认真工作呀。", "再陪你一会儿。"))) { v ->
             curSelfTalkTexts = (v as Set<*>).filterIsInstance<String>().toList()
         }
         watch(c.flowString("self_talk_bubble_style", "classic_top")) { v ->
