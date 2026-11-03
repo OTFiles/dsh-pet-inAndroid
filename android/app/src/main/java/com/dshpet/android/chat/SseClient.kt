@@ -221,8 +221,9 @@ object SseClient {
                                 val choices = payload.optJSONArray("choices")
                                 if (choices != null && choices.length() > 0) {
                                     val delta = choices.getJSONObject(0).optJSONObject("delta")
-                                    val content = delta?.optString("content")
-                                    if (!content.isNullOrEmpty()) out.add(content)
+                                    // org.json 的 optString() 在值为 JSON null 时会返回字符串 "null"，需先判空
+                                    val content = if (delta == null || delta.isNull("content")) "" else delta.optString("content")
+                                    if (content.isNotEmpty() && content != "null") out.add(content)
                                 }
                             } catch (e: org.json.JSONException) {
                                 throw IllegalStateException("Provider 返回了无效 JSON", e)
